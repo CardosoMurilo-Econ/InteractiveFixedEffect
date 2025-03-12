@@ -106,7 +106,7 @@ To estimate the interactive fixed effects model:
         <img src="https://quicklatex.com/cache3/ea/ql_a13af8777a3892268f78c36c981972ea_l3.png" alt="Equation">
      </p>
 
-    with $ D_{3} = \plim (1/NT) \sum_{i=1}^N \sum_{t=1}^{T} Z_{it} Z\prime_{it} \sigma^2_{i,t}$
+    with ![Equation](https://quicklatex.com/cache3/16/ql_8cd17681c860d94c42b7155ae651c916_l3.png).
 
     ```python
     # Creating a dataset with heteroskedastic errors
