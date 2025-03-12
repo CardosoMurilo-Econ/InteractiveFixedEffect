@@ -25,16 +25,19 @@ All functions can be optimized using **GPU acceleration** for improved computati
 
 ## Installation
 
-```
+To install the package, run the following command:
+
+```bash
 pip install git+https://github.com/CardosoMurilo-Econ/InteractiveFixedEffect.git
 ```
-Obs: It is necessary Git installed in your PC. To test if Git is installed run in cmd:
 
-```
+**Note**: Git must be installed on your system before proceeding. To check if Git is installed, run:
+
+```bash
  git --version
 ```
 
-If it was not installed, install it by [https://git-scm.com/downloads](https://git-scm.com/downloads)
+If Git is not installed, download and install it from [git-scm.com](https://git-scm.com/downloads).
 
 ## Usage
 
