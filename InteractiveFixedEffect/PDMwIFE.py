@@ -506,35 +506,37 @@ def _cov_iid_torch(E, inv_D0):
 
 def _B_torch(residuals, inv_D0, A, X, F_hat, L_hat, inv_LL):
         T, N, p = X.shape
+        
         V = torch.einsum('ij,tjp-> tip', A, X)/N
         sigma2_i = torch.mean(residuals**2, axis=0)
-        DB = 0
-        for i in range(N):
-                DB += (X[:, i, :] - V[:, i, :]).T @ F_hat / T @ inv_LL @ L_hat[i, :] * sigma2_i[i]
+        X_V = X - V
+        L_hatS = L_hat * sigma2_i[:, None]
+        X_VFLL = torch.einsum('tnp, tk -> npk', X_V, F_hat @ inv_LL)/T
+        DB = torch.einsum('npk, nk -> p', X_VFLL, L_hatS)
         B = -inv_D0/N @ DB
 
         return B.reshape(-1, 1)
 
 def _C_torch(residuals, inv_D0, X, M_F, F_hat, L_hat, inv_LL):
         T, N, p = X.shape
-        sigma2_t = torch.mean(residuals**2, axis=1)
-        Sigma = torch.diag(sigma2_t)
+        
+        sigma2_t = torch.mean(residuals**2, dim=1)
+        Sigma = torch.diag_embed(sigma2_t)
+        MFSFLL = M_F @ Sigma @ F_hat @ inv_LL
+        XMFSFLL = torch.einsum('tnp, tk -> npk', X, MFSFLL)  
+        DC = torch.einsum('npk, nk -> p', XMFSFLL, L_hat)
 
-        DC = 0
-        for i in range(N):
-                DC += X[:, i, :].T @ M_F @ Sigma @ F_hat @ inv_LL @ L_hat[i, :]
         C = -inv_D0/(N*T) @ DC
+
         return C.reshape(-1, 1)
 
 def _D3_torch(residuals, Z):
         T, N = residuals.shape
 
         sigmait = residuals**2
-
-        D3 = 0
-        for i in range(N):
-                for t in range(T):
-                        D3 += torch.outer(Z[t, i, :], Z[t, i, :]) * sigmait[t, i]
+        sigmait = sigmait.unsqueeze(-1)
+        weighted_Z = Z * sigmait
+        D3 = torch.einsum('tnd,tne->de', weighted_Z, Z)
         D3 = D3/(N*T)
         return D3
 
@@ -551,6 +553,7 @@ def _cov_het_torch(residuals, Z, inv_D0, beta, A, X, M_F, F_hat, L_hat, inv_LL):
 
         return beta_adj, cov
    
+
 ##################### Numpy Variance calculations ####################
 
 # i.i.d. variance-covariance matrix #
