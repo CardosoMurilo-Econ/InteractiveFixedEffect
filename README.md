@@ -93,9 +93,11 @@ $$ Y_{it} = \alpha_i + \gamma_t + X\prime_{it} \beta +  F_{t} \lambda\prime_{i} 
 
     where
 
-    $$ \sqrt{NT} \left(\beta^\dagger - \beta \right) \sim N\left(0, D_0^{-1} D_{3} D_0^{-1}\right) $$
+    <p align="center">
+        <img src="https://quicklatex.com/cache3/ea/ql_a13af8777a3892268f78c36c981972ea_l3.png" alt="Equation">
+     </p>
 
-    with $ D_{3} = \plim (1/NT) \sum_{i=1}^N \sum_{t=1}^{T} Z_{it} Z_{it}^\prime \sigma^2_{i,t}$
+    with $ D_{3} = \plim (1/NT) \sum_{i=1}^N \sum_{t=1}^{T} Z_{it} Z\prime_{it} \sigma^2_{i,t}$
 
     ```python
     # Creating a dataset with heteroskedastic errors
