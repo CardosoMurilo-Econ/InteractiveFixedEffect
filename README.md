@@ -59,7 +59,7 @@ $$ Y_{it} = \alpha_i + \gamma_t + X\prime_{it} \beta +  F_{t} \lambda\prime_{i} 
 
 1) Assuming $\epsilon_{it}$ is i.i.d:
 
-    $$ \sqrt{NT} (\hat{\beta} - \beta) \sim N(0, \sigma^2 D_0^{-1}). $$
+    $$ \sqrt{NT} (\hat{\beta} - \beta) ~ N(0, \sigma^2 D_0^{-1}). $$
 
     ```python
     # Creating a random dataset
