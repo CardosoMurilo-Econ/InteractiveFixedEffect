@@ -10,7 +10,7 @@ This Python library provides functions to:
 
    or
 
-   $$ Y_{it} = \alpha_i + \gamma_t + X_{it}\prime \beta + F_{t} \lambda^\prime_{i} + \epsilon_{it}. $$
+   $$ Y_{it} = \alpha_i + \gamma_t + X\prime_{it} \beta + F_{t} \lambda\prime_{i} + \epsilon_{it}. $$
 
    The algorithm is based on Bai (2009): [https://doi.org/10.3982/ECTA6135](https://doi.org/10.3982/ECTA6135).
 
@@ -32,7 +32,7 @@ import factorAnalysis as fa
 
 To estimate $\hat{F}_t$, $\hat{\lambda}_i$, and $\hat{k}$, consider the following model:
 
-$$ X_{it} = F_{t} \lambda^\prime_i + \varepsilon_{it}, $$
+$$ X_{it} = F_{t} \lambda\prime_i + \varepsilon_{it}, $$
 
 where $F_{t}$ and $\lambda_i$ are $k \times 1$ matrices.
 
@@ -55,7 +55,7 @@ PCA.summary()
 
 To estimate the interactive fixed effects model:
 
-$$ Y_{it} = \alpha_i + \gamma_t + X^\prime_{it} \beta +  F_{t} \lambda^\prime_{i} + \epsilon_{it}. $$
+$$ Y_{it} = \alpha_i + \gamma_t + X\prime_{it} \beta +  F_{t} \lambda\prime_{i} + \epsilon_{it}. $$
 
 1) Assuming $\epsilon_{it}$ is i.i.d:
 
@@ -87,7 +87,7 @@ $$ Y_{it} = \alpha_i + \gamma_t + X^\prime_{it} \beta +  F_{t} \lambda^\prime_{i
 
     A bias-correction procedure is applied:
 
-    $$ \beta^{\dagger} = \hat{\beta} - \frac{1}{N} \hat{B} - \frac{1}{T} \hat{C}. $$
+    $$ \beta^\dagger = \hat{\beta} - \frac{1}{N} \hat{B} - \frac{1}{T} \hat{C}. $$
 
     where
 
