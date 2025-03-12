@@ -6,7 +6,7 @@ This Python library provides functions to:
 
 2) Estimate the **Interactive Fixed Effects** (IFE) model using the *IFE* function for large panel datasets based on the following equations:
 
-$$ Y_{it} = X^\prime_{it} \beta + F_{t} \lambda^\prime_{i} + \epsilon_{it} $$
+   $$ Y_{it} = X^\prime_{it} \beta + F_{t} \lambda^\prime_{i} + \epsilon_{it} $$
 
    or
 
@@ -55,7 +55,7 @@ PCA.summary()
 
 To estimate the interactive fixed effects model:
 
-$$ Y_{it} = \alpha_i + \gamma_t + X^\prime_{it} \beta +  F_{t} \lambda'_{i} + \epsilon_{it}. $$
+$$ Y_{it} = \alpha_i + \gamma_t + X^\prime_{it} \beta +  F_{t} \lambda^\prime_{i} + \epsilon_{it}. $$
 
 1) Assuming $\epsilon_{it}$ is i.i.d:
 
