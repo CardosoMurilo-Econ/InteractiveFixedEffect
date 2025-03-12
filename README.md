@@ -25,6 +25,17 @@ All functions can be optimized using **GPU acceleration** for improved computati
 
 ## Installation
 
+```
+pip install git+https://github.com/CardosoMurilo-Econ/InteractiveFixedEffect.git
+```
+Obs: It is necessary Git installed in your PC. To test if Git is installed run in cmd:
+
+```
+ git --version
+```
+
+If it was not installed, install it by [https://git-scm.com/downloads](https://git-scm.com/downloads)
+
 ## Usage
 
 To use `factorAnalysis`, import it as follows:
