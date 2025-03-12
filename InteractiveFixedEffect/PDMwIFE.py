@@ -553,7 +553,6 @@ def _cov_het_torch(residuals, Z, inv_D0, beta, A, X, M_F, F_hat, L_hat, inv_LL):
 
         return beta_adj, cov
    
-
 ##################### Numpy Variance calculations ####################
 
 # i.i.d. variance-covariance matrix #
