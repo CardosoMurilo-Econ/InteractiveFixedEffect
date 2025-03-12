@@ -89,6 +89,10 @@ $$ Y_{it} = \alpha_i + \gamma_t + X\prime_{it} \beta +  F_{t} \lambda\prime_{i} 
 
     $$ \beta^\dagger = \hat{\beta} - \frac{1}{N} \hat{B} - \frac{1}{T} \hat{C}. $$
 
+   <p align="center">
+  <img src="https://latex.codecogs.com/png.latex?\beta^\dagger = \hat{\beta} - \frac{1}{N} \hat{B} - \frac{1}{T} \hat{C}." />
+   </p>
+
     where
 
     $$ \sqrt{NT} \left(\beta^\dagger - \beta \right) \sim N\left(0, D_0^{-1} D_{3} D_0^{-1}\right) $$
