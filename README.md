@@ -21,6 +21,9 @@ This Python library provides functions to:
 All functions can be optimized using **GPU acceleration** for improved computational efficiency, particularly for large T and N. To enable GPU support, set: `Torch_cuda = True`.
 
 ![Python Version](https://img.shields.io/badge/python-3.7%2B-blue)
+![PyTorch](https://img.shields.io/badge/PyTorch-1.10%2B-red)
+![NumPy](https://img.shields.io/badge/NumPy-1.21%2B-orange)
+![GPU Available](https://img.shields.io/badge/GPU-Available-green)
 
 ## Installation
 
