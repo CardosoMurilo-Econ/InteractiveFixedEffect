@@ -60,13 +60,16 @@ PCA.summary()
 ### Estimating the Interactive Fixed Effects Model
 
 To estimate the interactive fixed effects model:
+<p align="center">
+        <img src="https://quicklatex.com/cache3/d5/ql_88885fa8fe17ebe7ce4363aaebcc2bd5_l3.png" alt="Equation">
+</p>
 
-$$ Y_{it} = \alpha_i + \gamma_t + X\prime_{it} \beta +  F_{t} \lambda\prime_{i} + \epsilon_{it}. $$
 
 1) Assuming $\epsilon_{it}$ is i.i.d:
-
-    $$ \sqrt{NT} (\hat{\beta} - \beta) ~ N(0, \sigma^2 D_0^{-1}). $$
-
+      <p align="center">
+        <img src="https://quicklatex.com/cache3/1e/ql_6d3321d6ab63556005f4ee6cf5a9e31e_l3.png" alt="Equation">
+      </p>
+    
     ```python
     # Creating a random dataset
     import numpy as np
