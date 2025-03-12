@@ -87,7 +87,9 @@ $$ Y_{it} = \alpha_i + \gamma_t + X\prime_{it} \beta +  F_{t} \lambda\prime_{i} 
 
     A bias-correction procedure is applied:
 
-    ![Equation](https://quicklatex.com/cache3/cb/ql_711fea253d9a3a2517a02a154060c1cb_l3.png)
+    <p align="center">
+  <img src="https://quicklatex.com/cache3/cb/ql_711fea253d9a3a2517a02a154060c1cb_l3.png" alt="Equation">
+   </p>
 
     where
 
