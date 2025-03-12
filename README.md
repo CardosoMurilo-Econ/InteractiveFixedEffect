@@ -111,6 +111,7 @@ To estimate the interactive fixed effects model:
 
     ```python
     # Creating a dataset with heteroskedastic errors
+    import numpy as np
     T, N, k = 150, 200, 2
     F = np.random.normal(1, 1, (T, k))
     L = np.random.normal(-2, 1, (N, k))
@@ -120,6 +121,7 @@ To estimate the interactive fixed effects model:
     X2 = 2 + F @ Lx2.T + np.random.normal(0, 1, (T, N))
 
     alpha, beta1, beta2 = -2, 2, 1
+    
     sigmait = np.random.chisquare(2, (T, N)).reshape((T, N))
     E = np.random.normal(0, 1, (T, N)) * sigmait
 
