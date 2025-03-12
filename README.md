@@ -10,12 +10,13 @@ This Python library provides functions to:
         <img src="https://quicklatex.com/cache3/37/ql_7d2c8093abe1106c499aef4ac2e1ae37_l3.png" alt="Equation">
     </p>
    
-
    or
 
-   $$ Y_{it} = \alpha_i + \gamma_t + X\prime_{it} \beta + F_{t} \lambda\prime_{i} + \epsilon_{it}. $$
+   <p align="center">
+        <img src="https://quicklatex.com/cache3/33/ql_0ceefe909b7bcc4a9dcdbe9644730933_l3.png" alt="Equation">
+    </p>
 
-   The algorithm is based on Bai (2009): [https://doi.org/10.3982/ECTA6135](https://doi.org/10.3982/ECTA6135).
+   The algorithm is based on [Bai (2009)](https://doi.org/10.3982/ECTA6135).
 
 All functions can be optimized using **GPU acceleration** for improved computational efficiency, particularly for large T and N. To enable GPU support, set: `Torch_cuda = True`.
 
