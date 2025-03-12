@@ -10,7 +10,7 @@ This Python library provides functions to:
 
    or
 
-   $$ Y_{it} = \alpha_i + \gamma_t + X^\prime_{it} \beta + F_{t} \lambda^\prime_{i} + \epsilon_{it}. $$
+   $$ Y_{it} = \alpha_i + \gamma_t + X_{it}\prime \beta + F_{t} \lambda^\prime_{i} + \epsilon_{it}. $$
 
    The algorithm is based on Bai (2009): [https://doi.org/10.3982/ECTA6135](https://doi.org/10.3982/ECTA6135).
 
