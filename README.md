@@ -2,7 +2,7 @@
 
 This Python library provides functions to:
 
-1) Compute **Principal Components** using the functions *PCA* or *factor_dimensionality* to extract factors from a dataset by maximizing tr(F'X'XF) or tr(L'X'XL), where F is the common factor, L is the loading factor, and X is the data matrix. This method follows the approach proposed by Bai and Ng (2002): [https://doi.org/10.1111/1468-0262.00273](https://doi.org/10.1111/1468-0262.00273).
+1) Compute **Principal Components** using the functions *PCA* or *factor_dimensionality* to extract factors from a dataset by maximizing tr(F'X'XF) or tr(L'X'XL), where F is the common factor, L is the loading factor, and X is the data matrix. This method follows the approach proposed by [Bai and Ng (2002)](https://doi.org/10.1111/1468-0262.00273).
 
 2) Estimate the **Interactive Fixed Effects** (IFE) model using the *IFE* function for large panel datasets based on the following equations:
 
@@ -13,7 +13,7 @@ This Python library provides functions to:
    or
 
    <p align="center">
-        <img src="https://quicklatex.com/cache3/33/ql_0ceefe909b7bcc4a9dcdbe9644730933_l3.png" alt="Equation">
+        <img src="https://quicklatex.com/cache3/3a/ql_5296184788c6b40e449e57949e3abe3a_l3.png" alt="Equation">
     </p>
 
    The algorithm is based on [Bai (2009)](https://doi.org/10.3982/ECTA6135).
@@ -36,7 +36,9 @@ import factorAnalysis as fa
 
 To estimate $\hat{F}_t$, $\hat{\lambda}_i$, and $\hat{k}$, consider the following model:
 
-$$ X_{it} = F_{t} \lambda\prime_i + \varepsilon_{it}, $$
+<p align="center">
+        <img src="https://quicklatex.com/cache3/7b/ql_ceac7db3998b0272b70ab6ca4ddb3a7b_l3.png" alt="Equation">
+</p>
 
 where $F_{t}$ and $\lambda_i$ are $k \times 1$ matrices.
 
