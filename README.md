@@ -44,7 +44,7 @@ If Git is not installed, download and install it from [git-scm.com](https://git-
 To use `factorAnalysis`, import it as follows:
 
 ```python
-import factorAnalysis as fa
+import InteractiveFixedEffect as IFE
 ```
 
 ### Estimating PCA
@@ -66,7 +66,7 @@ L = np.random.normal(-2, 1, (N, k))
 X = F @ L.T + np.sqrt(k) * np.random.normal(0, 1, (T, N))
 
 # Estimating factors and dimensionality
-PCA = fa.factor_dimensionality(X)
+PCA = IFE.factor_dimensionality(X)
 
 # Summarizing the results
 PCA.summary()
@@ -101,7 +101,7 @@ To estimate the interactive fixed effects model:
     Y = alpha + beta1 * X1 + beta2 * X2 + F @ L.T + E
 
     # Estimating the IFE model
-    Output = fa.IFE(Y, [X1, X2], fixed_effects='twoways', Variance_type='iid')
+    Output = IFE.IFE(Y, [X1, X2], fixed_effects='twoways', Variance_type='iid')
 
     # Summarizing the results
     Output.summary()
@@ -142,7 +142,7 @@ To estimate the interactive fixed effects model:
     Y = alpha + beta1 * X1 + beta2 * X2 + F @ L.T + E
 
     # Estimating the IFE model with heteroskedastic variance
-    Output = fa.IFE(Y, [X1, X2], fixed_effects='twoways', Variance_type='heteroskedastic')
+    Output = IFE.IFE(Y, [X1, X2], fixed_effects='twoways', Variance_type='heteroskedastic')
 
     # Summarizing the results
     Output.summary()
@@ -173,7 +173,7 @@ If `True`, CUDA is available, and functions can be run with `Torch_cuda = True`.
 ```python
 import factorAnalysis as fa
 
-Output = fa.IFE(Y, [X1, X2], fixed_effects='twoways', Variance_type='heteroskedastic', Torch_cuda=True)
+Output = IFE.IFE(Y, [X1, X2], fixed_effects='twoways', Variance_type='heteroskedastic', Torch_cuda=True)
 ```
 
 ### Performance Comparison
