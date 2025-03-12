@@ -87,11 +87,7 @@ $$ Y_{it} = \alpha_i + \gamma_t + X\prime_{it} \beta +  F_{t} \lambda\prime_{i} 
 
     A bias-correction procedure is applied:
 
-    $$ \beta^\dagger = \hat{\beta} - \frac{1}{N} \hat{B} - \frac{1}{T} \hat{C}. $$
-
-   <p align="center">
-  <img src="https://latex.codecogs.com/png.latex?\beta^\dagger = \hat{\beta} - \frac{1}{N} \hat{B} - \frac{1}{T} \hat{C}." />
-   </p>
+    ![Equation](https://quicklatex.com/cache3/cb/ql_711fea253d9a3a2517a02a154060c1cb_l3.png)
 
     where
 
