@@ -41,7 +41,7 @@ If Git is not installed, download and install it from [git-scm.com](https://git-
 
 ## Usage
 
-To use `factorAnalysis`, import it as follows:
+To use `InteractiveFixedEffect`, import it as follows:
 
 ```python
 import InteractiveFixedEffect as IFE
