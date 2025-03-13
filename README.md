@@ -171,7 +171,7 @@ torch.cuda.is_available()
 If `True`, CUDA is available, and functions can be run with `Torch_cuda = True`.
 
 ```python
-import factorAnalysis as fa
+import InteractiveFixedEffect as IFE
 
 Output = IFE.IFE(Y, [X1, X2], fixed_effects='twoways', Variance_type='heteroskedastic', Torch_cuda=True)
 ```
