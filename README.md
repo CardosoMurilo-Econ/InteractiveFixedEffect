@@ -195,6 +195,7 @@ As you can see, **GPU acceleration significantly outperforms the CPU**, especial
 
 **Note:** 
 \* The CPU/GPU Speedup column represents how many times faster the GPU is compared to the CPU.
+
 \* The efficiency between CPU and GPU may vary depending on your hardware.
 
 \* Hardware used in the test:
