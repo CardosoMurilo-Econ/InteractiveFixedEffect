@@ -1,5 +1,4 @@
 import numpy as np
-from numba import njit
 import pandas as pd
 import torch
 from .Device_aux_functions import move_to_device, get_device
@@ -187,22 +186,6 @@ def _criteria_function_PC(k, V, sigma2_hat, penalty):
 def _criteria_function_IC(k, V, sigma2_hat, penalty):
     return np.log(V[k - 1]) + k * penalty
 
-@njit(fastmath=True, cache=True)
-def _SSE_numpa(k, X, F_hat, L_hat):
-    F_k = F_hat[:, :k]
-    L_k = L_hat[:, :k]
-    FL = np.dot(F_k, L_k.T)  # Numba-accelerated matrix multiplication
-
-    # Compute squared error efficiently
-    T, N = X.shape
-    error_sum = 0.0
-    for i in range(T):  # Standard loop (No parallelism)
-        for j in range(N):
-            diff = X[i, j] - FL[i, j]
-            error_sum += diff * diff
-
-    return error_sum / (T * N)  # Mean squared error
-
 def _SSE(k, X, F_hat, L_hat):
     F_k = F_hat[:, :k]
     L_k = L_hat[:, :k]
@@ -219,7 +202,6 @@ def _FDE(X: Matrix,
         k_max: k_max_class = 8,
         Criteria: criteria_class = ['PC1', 'PC2', 'PC3', 'IC1', 'IC2', 'IC3'],
         restrict: str = 'optimize',
-        Numpa_opt: bool = False,
         Torch_cuda: bool = False) -> tuple[np.ndarray, np.ndarray, np.ndarray, int]:
     
     '''
@@ -249,8 +231,6 @@ def _FDE(X: Matrix,
     if Torch_cuda:
         V = torch.tensor([_SSE_Cuda(k, X, F_hat, L_hat) for k in range(1, k_max + 1)], device=device)
         V = V.cpu().numpy()
-    elif Numpa_opt:
-        V = [_SSE_numpa(k, X, F_hat, L_hat) for k in range(1, k_max + 1)]
     else:
         V = [_SSE(k, X, F_hat, L_hat) for k in range(1, k_max + 1)]
     
@@ -315,7 +295,6 @@ def factor_dimensionality(X: Matrix,
         k_max: k_max_class = 8,
         Criteria: criteria_class = ['PC1', 'PC2', 'PC3', 'IC1', 'IC2', 'IC3'],
         restrict: str = 'optimize',
-        Numpa_opt: bool = False,
         Torch_cuda: bool = False) -> FDE_output:
     '''
     Estimates the **number of factors (k)** in large-dimensional factor models, along with the **common factors (F)** and **factor loadings (L)** for a given matrix T x N (**X**). The estimation is based on one of the criteria proposed by Bai and Ng (2002): https://doi.org/10.1111/1468-0262.00273.
@@ -348,8 +327,7 @@ def factor_dimensionality(X: Matrix,
             - 'optimize' (default): Automatically selects the most computationally efficient option:  
                 - Uses 'common' if N ≥ T.  
                 - Uses 'loading' if T > N.  
-        Numpa_opt (bool, optional):  Whether to use Numba-accelerated matrix operations. If `factor_dimensionality` is called multiple times for matrices of the same dimension, enabling Numba can improve performance. However, the first call will be slower due to the compilation overhead. For one-time use per matrix dimension, it is recommended to set `Numpa_opt = False`. Default is **False**.
-    
+        Torch_cuda (bool, optional): Whether to use PyTorch for computations. If cuda torch was available, the computations will be done on the GPU else they use pytorch in cpu. Default is **False**.
     Returns:
         FDE_output: A class containing the following attributes:  
             - **'Data'**: The original data matrix.  
@@ -396,7 +374,7 @@ def factor_dimensionality(X: Matrix,
     Criteria = _validate_input(Criteria, criteria_class)
     X = _validate_input(X, Matrix)
 
-    criteria_matrix, F_hat, L_hat, k = _FDE(X, k_max, Criteria, restrict, Numpa_opt, Torch_cuda)
+    criteria_matrix, F_hat, L_hat, k = _FDE(X, k_max, Criteria, restrict, Torch_cuda)
 
     if Torch_cuda:
         F_hat = F_hat.cpu().numpy()
