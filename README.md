@@ -176,22 +176,25 @@ import factorAnalysis as fa
 Output = IFE.IFE(Y, [X1, X2], fixed_effects='twoways', Variance_type='heteroskedastic', Torch_cuda=True)
 ```
 
-### Performance Comparison
+## 🚀 Performance Comparison  
 
-Above, we present a performance comparison between 100 runs of the algorithm in the IFE function using CPU vs. GPU.
+Below, we present a performance comparison between **100 runs** of the algorithm in the IFE function using **CPU vs. GPU**.  
+As you can see, **GPU acceleration significantly outperforms the CPU**, especially as `N` and `T` increase. ⚡🔥  
 
-| N   | T    | CPU Time (s) | GPU Time (s) |
-|-----|------|--------------|--------------|
-| 100 | 100  | 8.99         | 6.11         |
-| 100 | 500  | 122.26       | 29.29        |
-| 100 | 1000 | 360.91       | 24.59        |
-| 500 | 100  | 63.71        | 6.50         |
-| 500 | 500  | 409.91       | 26.64        |
-| 500 | 1000 | 902.78       | 23.55        |
-| 1000| 100  | 206.17       | 6.22         |
-| 1000| 500  | 1159.62      | 25.85        |
-| 1000| 1000 | 2413.17      | 30.09        |
+| N    | T    | CPU Time (s) ⏳ | GPU Time (s) ⚡ | CPU/GPU Speedup 🚀 |
+|------|------|--------------|--------------|------------------|
+| 100  | 100  | 8.99         | 6.11         | 1.5x             |
+| 100  | 500  | 122.26       | 29.29        | 4.2x             |
+| 100  | 1000 | 360.91       | 24.59        | 14.7x 🚀        |
+| 500  | 100  | 63.71        | 6.50         | 9.8x  🚀        |
+| 500  | 500  | 409.91       | 26.64        | 15.4x 🚀        |
+| 500  | 1000 | 902.78       | 23.55        | 38.3x 🚀⚡      |
+| 1000 | 100  | 206.17       | 6.22         | 33.1x 🚀⚡      |
+| 1000 | 500  | 1159.62      | 25.85        | 44.9x 🚀⚡      |
+| 1000 | 1000 | 2413.17      | 30.09        | 80.2x 💀➡️🚀    |
 
+**Note:** 
+\* The CPU/GPU Speedup column represents how many times faster the GPU is compared to the CPU.
 \* The efficiency between CPU and GPU may vary depending on your hardware.
 
 \* Hardware used in the test:
