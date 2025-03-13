@@ -87,7 +87,6 @@ def _est_alg(Y: Matrix,
              Tol: float = 1e-6,
              Tol_2deriv: float = 1e-9,
              Max_iter: int = 2_000,
-             Numpa_opt: bool = False,
              Torch_cuda: bool = False,
              echo = False) -> tuple:
         
@@ -139,7 +138,7 @@ def _est_alg(Y: Matrix,
  
                 w = y - x @ beta
                 W = w.reshape(T, N)
-                _, F_hat, L_hat, k = _FDE(W, k_max = k_max, Criteria=Criteria, restrict = restrict, Numpa_opt=Numpa_opt, Torch_cuda=Torch_cuda)
+                _, F_hat, L_hat, k = _FDE(W, k_max = k_max, Criteria=Criteria, restrict = restrict, Torch_cuda=Torch_cuda)
                 
                 Y_new = Y - F_hat @ L_hat.T
                 y_new = Y_new.reshape(-1, 1)
@@ -269,7 +268,6 @@ def IFE(Y: Matrix,
         Tol_2order: float = 1e-9,
         Max_iter: int = 2_000,
         echo: bool = False,
-        Numpa_opt: bool = False,
         Torch_cuda: bool = False) -> InteractiveFixedEffectModelOutput:
         '''
         Estimates the **Interactive Fixed Effects** model for a large panel dataset by the following equation:
@@ -314,7 +312,6 @@ def IFE(Y: Matrix,
                 Tol_2order (float, optional): Tolerance for second order convergence. This tolerance is used to check if the first order convergence criteria is no longer decreasing significantly across interaction. How much bigger is this value, faster they stop the interaction in case of non-convergence, however, a high value can stop the code before converging. Default is 1e-9.
                 Max_iter (int, optional): Maximum number of iterations. Default is 2_000. 
                 echo (bool, optional): Print the convergence criteria in each iteration. Default is **False**.
-                Numpa_opt (bool, optional): Whether to use Numba-accelerated matrix operations. If `factor_dimensionality` is called multiple times for matrices of the same dimension, enabling Numba can improve performance. However, the first call will be slower due to the compilation overhead. For one-time use per matrix dimension, it is recommended to set `Numpa_opt = False`. Default is **False**.
                 Torch_cuda (bool): Use torch GPU for calculations. If a GPU is available, increase considerably the performance for matrix with large dimensions (N, T > 500). However, cuda 11.8+ torch library is necessary. For installation of cuda torch see: https://pytorch.org/get-started/locally/. It is recomended utilized a virtual enviroment in this case and is mandatory install cuda torch before the installation of the this function's library. If the cuda is not installed on the current virtual enviroment, exclude torch library and reinstall it cuda version. Default is **False**.
         
         Returns:
@@ -389,7 +386,7 @@ def IFE(Y: Matrix,
                 Y, X, restrict='common',
                 Criteria=Criteria, k_max=k_max,
                 Tol=Tol, Tol_2deriv=Tol_2order, Max_iter=Max_iter,
-                Numpa_opt=Numpa_opt, Torch_cuda=Torch_cuda, echo=echo
+                Torch_cuda=Torch_cuda, echo=echo
         ) 
 
         # Compute variance-covariance matrix
