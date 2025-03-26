@@ -6,14 +6,6 @@ torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
 from .class_def import k_class, k_max_class, criteria_class, Matrix
 
-import numpy as np
-import pandas as pd
-import torch
-from Device_aux_functions import move_to_device, get_device
-torch.backends.cudnn.deterministic = True
-torch.backends.cudnn.benchmark = False
-from class_def import k_class, k_max_class, criteria_class, Matrix
-
 # validate inputs #
 def _validate_input(input, class_type, **kwargs):
     if not isinstance(input, class_type):
