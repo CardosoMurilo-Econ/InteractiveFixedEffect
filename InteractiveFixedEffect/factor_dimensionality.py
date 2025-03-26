@@ -4,13 +4,21 @@ import torch
 from .Device_aux_functions import move_to_device, get_device
 torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
-from .class_def import k_max_class, criteria_class, Matrix
+from .class_def import k_class, k_max_class, criteria_class, Matrix
+
+import numpy as np
+import pandas as pd
+import torch
+from Device_aux_functions import move_to_device, get_device
+torch.backends.cudnn.deterministic = True
+torch.backends.cudnn.benchmark = False
+from class_def import k_class, k_max_class, criteria_class, Matrix
 
 # validate inputs #
-def _validate_input(input, class_type):
-        if not isinstance(input, class_type):
-              input = class_type(input)
-        return input
+def _validate_input(input, class_type, **kwargs):
+    if not isinstance(input, class_type):
+            input = class_type(input, **kwargs)
+    return input
 
 ### Estimating Factors ###
 def _output(F, L, N, T, dim_factor, restrict):
@@ -199,7 +207,7 @@ def _SSE_Cuda(k, X, F_hat, L_hat):
     return torch.mean((X - FL) ** 2)
 
 def _FDE(X: Matrix,
-        k_max: k_max_class = 8,
+        k_max: k_max_class = 10,
         Criteria: criteria_class = ['PC1', 'PC2', 'PC3', 'IC1', 'IC2', 'IC3'],
         restrict: str = 'optimize',
         Torch_cuda: bool = False) -> tuple[np.ndarray, np.ndarray, np.ndarray, int]:
@@ -213,7 +221,7 @@ def _FDE(X: Matrix,
         See `FDE` function for details.  
 
     Returns:
-        k (int): The estimated factor dimensionality.  
+        Criteria trix (numpy.matrix): A matrix containing the criteria values for each factor dimensionality.  
         F (numpy.ndarray): The estimated common factor of shape (T, k).  
         L (numpy.ndarray): The estimated loading factor of shape (N, k).
         k (int): The estimated factor dimensionality.
@@ -260,7 +268,7 @@ class FDE_output:
     def __init__(self, criteria_matrix, Criteria, k_max, F_hat, L_hat, k, X, residuals):
 
         k_list = [f"K={k}" for k in range(1, k_max + 1)]
-        criteria_pd = pd.DataFrame(criteria_matrix, columns = k_list, index = Criteria)
+        criteria_pd = pd.DataFrame(criteria_matrix, columns = k_list, index = Criteria) if criteria_matrix is not None else None
         self.Data = X
         self.criteria_matrix = criteria_pd
         self.Criterias = Criteria
@@ -272,8 +280,11 @@ class FDE_output:
     
     def summary(self):
 
-        k_opt = [np.argmin(self.criteria_matrix.iloc[i, :]) + 1 for i in range(len(self.criteria_matrix.index))]
-        k_opt = pd.DataFrame([k_opt], columns=self.criteria_matrix.index, index=['K estimated'])
+        if self.criteria_matrix is not None:
+            k_opt = [np.argmin(self.criteria_matrix.iloc[i, :]) + 1 for i in range(len(self.criteria_matrix.index))]
+            k_opt = pd.DataFrame([k_opt], columns=self.criteria_matrix.index, index=['K estimated'])
+        else:
+            k_opt = self.k
 
         print("\n")
         print("** Factor Dimensionality Estimation Summary **")
@@ -285,14 +296,19 @@ class FDE_output:
         print(f"Selected Factor Dimensionality: {self.k}")
         print("Residuals: Mean = ", np.mean(self.residuals).round(4), ", Std = ", np.std(self.residuals).round(4), ". R^2: ", 1 - np.var(self.residuals) / np.var(self.Data), sep = '')
         print("\n")
-        print("Criteria Matrix with max factor dimensionality (K_max) equal to ", self.k_max, ":")
-        print(self.criteria_matrix)
+        if self.criteria_matrix is None:
+            print(f"Warning: k = {self.k} was defined by the user. No criteria matrix was calculated.")
+        else:
+            print("Criteria Matrix with max factor dimensionality (K_max) equal to ", self.k_max, ":")
+            print(self.criteria_matrix)
         print("\n")
         print("Algorithm based on Bai and Ng (2002): https://doi.org/10.1111/1468-0262.00273")
         return None
 
-def factor_dimensionality(X: Matrix,
-        k_max: k_max_class = 8,
+def factor_dimensionality(
+        X: Matrix,
+        k: int = None, 
+        k_max: k_max_class = 10,
         Criteria: criteria_class = ['PC1', 'PC2', 'PC3', 'IC1', 'IC2', 'IC3'],
         restrict: str = 'optimize',
         Torch_cuda: bool = False) -> FDE_output:
@@ -302,9 +318,10 @@ def factor_dimensionality(X: Matrix,
     Parameters:
         X (numpy.ndarray): The data matrix of shape (T, N),  
             where **T** is the number of time observations,  
-            and **N** is the number of individuals (variables).  
+            and **N** is the number of individuals (variables).
+        k (int, optional): The number of factors to estimate. If not define (**None**), the function will estimate the number of factors. Default is **None**.
         k_max (int, optional): The maximum number of principal components to consider.  
-            Must be less than **min(T, N)**. Default is **8**. 
+            Must be less than **min(T, N)**. Default is **10**. 
         Criteria (list, optional): The criteria used to estimate the factor dimensionality. They printed all criterias in the list but use only the first criteria in the list to determine the factor dimensionality.
             Options are:  
                 - 'IC1': Information Criterion such that
@@ -370,11 +387,17 @@ def factor_dimensionality(X: Matrix,
     '''
     
     # Validate inputs #
-    k_max = _validate_input(k_max, k_max_class)
-    Criteria = _validate_input(Criteria, criteria_class)
     X = _validate_input(X, Matrix)
-
-    criteria_matrix, F_hat, L_hat, k = _FDE(X, k_max, Criteria, restrict, Torch_cuda)
+    T, N = X.shape
+    k = _validate_input(k, k_class, N=N, T=T)
+    k_max = _validate_input(k_max, k_max_class, N=N, T=T)
+    Criteria = _validate_input(Criteria, criteria_class)
+    
+    if k is not None:
+        F_hat, L_hat, _, _, _, _, _, _ = _PCA(X, k, restrict, Torch_cuda)
+        criteria_matrix = None
+    else:
+        criteria_matrix, F_hat, L_hat, k = _FDE(X, k_max, Criteria, restrict, Torch_cuda)
 
     if Torch_cuda:
         F_hat = F_hat.cpu().numpy()

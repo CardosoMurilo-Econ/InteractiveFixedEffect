@@ -1,5 +1,5 @@
-from .factor_dimensionality import _FDE
-from .class_def import Matrix, k_max_class, criteria_class, var_type, fixed_effect
+from .factor_dimensionality import _FDE, _PCA
+from .class_def import Matrix, k_class, k_max_class, criteria_class, var_type, fixed_effect
 from .Device_aux_functions import move_to_device, get_device, move_to_cpu
 import numpy as np
 import torch
@@ -9,9 +9,9 @@ torch.backends.cudnn.deterministic = True
 
 #######################    Inputs Validation   #######################
 
-def _validate_input(input, class_type):
+def _validate_input(input, class_type, **kwargs):
         if not isinstance(input, class_type):
-              input = class_type(input)
+              input = class_type(input, **kwargs)
         return input
 
 ####################### Two way transformation #######################
@@ -81,6 +81,7 @@ def _convergence_criteria(beta, delta, previous_delta, small_change_counter, Tol
 
 def _est_alg(Y: Matrix, 
              X: list[Matrix],
+             k: int = None,
              Criteria: criteria_class = ['PC1'],
              k_max: k_max_class = 8,
              restrict: str = 'optimize',
@@ -110,8 +111,6 @@ def _est_alg(Y: Matrix,
         T, N = Y.shape
 
         # Defining covariate matrix (x) N*T x (p+1)
-        # Intercept = np.ones((N*T, 1))
-        # x = np.hstack([M.reshape(-1, 1) for M in [Intercept] + X])
         x = np.hstack([M.reshape(-1, 1) for M in X])
 
         # Reshape Y to N*T x 1
@@ -138,7 +137,10 @@ def _est_alg(Y: Matrix,
  
                 w = y - x @ beta
                 W = w.reshape(T, N)
-                _, F_hat, L_hat, k = _FDE(W, k_max = k_max, Criteria=Criteria, restrict = restrict, Torch_cuda=Torch_cuda)
+                if k is not None:
+                       F_hat, L_hat, _, _, _, _, _, _ = _PCA(W, k, restrict, Torch_cuda) 
+                else:
+                       _, F_hat, L_hat, k = _FDE(W, k_max = k_max, Criteria=Criteria, restrict = restrict, Torch_cuda=Torch_cuda)
                 
                 Y_new = Y - F_hat @ L_hat.T
                 y_new = Y_new.reshape(-1, 1)
@@ -260,6 +262,7 @@ class InteractiveFixedEffectModelOutput:
 
 def IFE(Y: Matrix,
         X: list[Matrix],
+        k: int = None,
         fixed_effects: fixed_effect = 'twoways',
         Variance_type: var_type = 'iid',
         Criteria: criteria_class = ['IC1'],
@@ -371,10 +374,12 @@ def IFE(Y: Matrix,
         # Validate inputs #
         Y = _validate_input(Y, Matrix)
         X = [_validate_input(x, Matrix) for x in X]
+        T,N = Y.shape
+        k = _validate_input(k, k_class, N=N, T=T)
+        k_max = _validate_input(k_max, k_max_class, N=N, T=T)
         fixed_effects = _validate_input(fixed_effects, fixed_effect)
         Variance_type = _validate_input(Variance_type, var_type)
         Criteria = _validate_input(Criteria, criteria_class)
-        k_max = _validate_input(k_max, k_max_class)
 
         if fixed_effects == 'twoways':
                 dotY, Y_tdot, Y_idot, Y_dobledot, dotX, X_tdot, X_idot, X_dobledot = _get_two_way_transform_data(Y, X)
@@ -383,14 +388,13 @@ def IFE(Y: Matrix,
 
         # Estimate the coefficients, factors and loadings
         beta, F_hat, L_hat, k, N_sim, delta, previous_delta = _est_alg(
-                Y, X, restrict='common',
+                Y, X, k=k, restrict='common',
                 Criteria=Criteria, k_max=k_max,
                 Tol=Tol, Tol_2deriv=Tol_2order, Max_iter=Max_iter,
                 Torch_cuda=Torch_cuda, echo=echo
         ) 
 
         # Compute variance-covariance matrix
-
         beta, cov, residuals, A, D0, inv_D0, X_2, Z = _VAR_COV_Estimation(Y, X, beta, F_hat, L_hat, Variance_type, Torch_cuda)
 
         if Torch_cuda:
@@ -639,8 +643,4 @@ def _cov_het(residuals, Z, inv_D0, beta, A, X, M_F, F_hat, L_hat, inv_LL):
         cov = inv_D0 @ D3 @ inv_D0
 
         return beta_adj, cov
-        
-
-
-
         

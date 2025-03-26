@@ -1,11 +1,26 @@
 import numpy as np
 
-class k_max_class(int):
-    def __new__(cls, input_int: int):
+class k_class(int):
+    def __new__(cls, input_int: int, N, T):
+
+        if input_int is None:
+            return None
         if not isinstance(input_int, int):
-            raise TypeError("Input must be an integer.")
+            raise TypeError("k must be an integer or None.")
         if input_int < 1:
-            raise ValueError("Input must be greater than 0.")
+            raise ValueError("k must be greater than 0.")
+        if input_int >= min(N, T):
+            raise ValueError("k must be less than the minimum of N and T.")
+        return int(input_int)
+
+class k_max_class(int):
+    def __new__(cls, input_int: int, N, T):
+        if not isinstance(input_int, int):
+            raise TypeError("k_max must be an integer.")
+        if input_int < 1:
+            raise ValueError("k_max must be greater than 0.")
+        if input_int >= min(N, T):
+            raise ValueError("k_max must be less than the minimum of N and T.")
         return int(input_int)
 
 class criteria_class(list):
@@ -55,4 +70,3 @@ class fixed_effect(str):
             raise ValueError("Invalid criteria. Criteria must be ", ', '.join(valid_criteria))
         
         return str(input_str)
-    
