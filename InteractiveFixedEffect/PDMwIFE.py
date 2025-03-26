@@ -283,6 +283,7 @@ def IFE(Y: Matrix,
         Parameters:
                 Y (numpy.ndarray or torch.Tensor): Dependent variable of the model. Shape (T, N).
                 X (list[numpy.ndarray or torch.Tensor]): List of covariates. Each element of the list is a covariate matrix. Shape (T, N, p).
+                k (int, optional): Number of factors to be estimated. Default is **None**. If **None**, the number of factors is estimated by the factor dimensionality algorithm.
                 fixed_effects (str, optional): Type of fixed effects. Options are: 
                         - 'Twoways' (default): Include both individual and time fixed effects. We estimate the model by transforming the data as described in Bai (2009). More efficient and recommended.
                         - 'None': Not include fixed effects. In this case, the model is estimated by the original data.
