@@ -25,7 +25,6 @@ def move_to_device(tensor, device):
         return tensor.to(device)
     return tensor
 
-
 def move_to_cpu(tensor):
     """Moves tensor to CPU only if necessary."""
     if not isinstance(tensor, torch.Tensor):

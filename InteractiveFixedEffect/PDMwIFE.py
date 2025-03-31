@@ -63,6 +63,8 @@ def _convergence_criteria(beta, delta, previous_delta, small_change_counter, Tol
         # Check if delta is less than tolerance
         beta_norm = np.linalg.norm(beta) + 1e-8 if not isinstance(beta, torch.Tensor) else torch.norm(beta) + 1e-8
         delta_standard = delta / beta_norm
+        
+        # Check if delta is less than tolerance 
         if delta_standard <= Tol:
                 small_change_counter += 1
         else:
