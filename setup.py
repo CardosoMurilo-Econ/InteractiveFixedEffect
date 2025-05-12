@@ -11,9 +11,9 @@ setup(
     author_email='murilo.s.cardoso@outlook.com',
 
     install_requires=[
-        'numpy==2.0.2', 
+        'numpy', 
         'pandas==2.2.3',
-        'scipy==1.13.1',
+        'scipy',
         'torch'
         ],
     setup_requires=['pytest-runner'],
