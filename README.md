@@ -47,7 +47,7 @@ import InteractiveFixedEffect as IFE
 
 To estimate $\hat{F}_t$, $\hat{\lambda}_i$, and $\hat{k}$, consider the following model:
 
- $$ X_{it} = \lambda_i^\prime F_t + \varepsilon_{it} $$
+$$ X_{it} = \lambda_i^\prime F_t + \varepsilon_{it} $$
 
 where $F_{t}$ and $\lambda_i$ are $k \times 1$ matrices.
 
