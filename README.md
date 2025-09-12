@@ -74,7 +74,7 @@ $$ Y_{it} = X_{it}^\prime \beta + \lambda_i^\prime F_t + \varepsilon_{it} $$
 
 1) Assuming $\epsilon_{it}$ is i.i.d:
 
-   $$ \sqrt{NT} (\hat{\beta} - \beta) \sim N\left(0, \sigma^2 D^{-1}\right) $$
+$$ \sqrt{NT} (\hat{\beta} - \beta) \sim N\left(0, \sigma^2 D^{-1}\right) $$
     
     ```python
     # Creating a random dataset
