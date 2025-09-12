@@ -10,7 +10,7 @@ This Python library provides functions to:
 
   or 
 
-  $$ Y_{it} = X_{it}^\prime \beta + \lambda_i^\prime F_t + \varepsilon_{it} $$
+  $$ Y_{it} = X_{it}^\prime \beta + \alpha_i + \gamma_t + \lambda_i^\prime F_t + \varepsilon_{it} $$
 
    The algorithm is based on [Bai (2009)](https://doi.org/10.3982/ECTA6135).
 
@@ -70,7 +70,7 @@ PCA.summary()
 
 To estimate the interactive fixed effects model:
 
-$$ Y_{it} = X_{it}^\prime \beta + \lambda_i^\prime F_t + \varepsilon_{it} $$
+$$ Y_{it} = X_{it}^\prime \beta + \alpha_i + \gamma_t + \lambda_i^\prime F_t + \varepsilon_{it} $$
 
 1) Assuming $\epsilon_{it}$ is i.i.d:
 
