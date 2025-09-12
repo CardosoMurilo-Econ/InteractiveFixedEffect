@@ -74,60 +74,66 @@ $$ Y_{it} = X_{it}^\prime \beta + \alpha_i + \gamma_t + \lambda_i^\prime F_t + \
 
 1) Assuming $\epsilon_{it}$ is i.i.d:
 
-  $$ \sqrt{NT} (\hat{\beta} - \beta) \sim N\left(0, \sigma^2 D^{-1}\right) $$
-    
-  ```python
-  # Creating a random dataset
-  import numpy as np
-  T, N, k = 200, 100, 2
-  F = np.random.normal(1, 1, (T, k))
-  L = np.random.normal(-2, 1, (N, k))
-  E = np.random.normal(0, 1, (T, N))
-  Lx1 = np.random.normal(2, 1, (N, k))
-  Lx2 = np.random.normal(-1, 1, (N, k))
-  X1 = 1 + F @ Lx1.T + np.random.normal(0, 1, (T, N))
-  X2 = 2 + F @ Lx2.T + np.random.normal(0, 1, (T, N))
-
-  alpha, beta1, beta2 = -2, -1, 2
-  Y = alpha + beta1 * X1 + beta2 * X2 + F @ L.T + E
-
-  # Estimating the IFE model
-  Output = IFE.IFE(Y, [X1, X2], fixed_effects='twoways', Variance_type='iid')
-
-  # Summarizing the results
-  Output.summary()
-  ```
+    $$ \sqrt{NT} (\hat{\beta} - \beta) \sim N\left(0, \sigma^2 D^{-1}\right) $$
+      
+    ```python
+    # Creating a random dataset
+    import numpy as np
+    T, N, k = 200, 100, 2
+    F = np.random.normal(1, 1, (T, k))
+    L = np.random.normal(-2, 1, (N, k))
+    E = np.random.normal(0, 1, (T, N))
+    Lx1 = np.random.normal(2, 1, (N, k))
+    Lx2 = np.random.normal(-1, 1, (N, k))
+    X1 = 1 + F @ Lx1.T + np.random.normal(0, 1, (T, N))
+    X2 = 2 + F @ Lx2.T + np.random.normal(0, 1, (T, N))
+  
+    alpha, beta1, beta2 = -2, -1, 2
+    Y = alpha + beta1 * X1 + beta2 * X2 + F @ L.T + E
+  
+    # Estimating the IFE model
+    Output = IFE.IFE(Y, [X1, X2], fixed_effects='twoways', Variance_type='iid')
+  
+    # Summarizing the results
+    Output.summary()
+    ```
 
 3) Assuming heteroskedastic variance of $\epsilon_{it}$:
 
-  A bias-correction procedure is applied:
+    A bias-correction procedure is applied:
 
-  $$ \beta^\dagger = β - (1/N) B - (1/T) C $$
+    $$ \hat{\beta}^\dagger = β - (1/N) B - (1/T) C $$
 
-  ```python
-  # Creating a dataset with heteroskedastic errors
-  import numpy as np
-  T, N, k = 150, 200, 2
-  F = np.random.normal(1, 1, (T, k))
-  L = np.random.normal(-2, 1, (N, k))
-  Lx1 = np.random.normal(2, 1, (N, k))
-  Lx2 = np.random.normal(-1, 1, (N, k))
-  X1 = 1 + F @ Lx1.T + np.random.normal(0, 1, (T, N))
-  X2 = 2 + F @ Lx2.T + np.random.normal(0, 1, (T, N))
+    and
 
-  alpha, beta1, beta2 = -2, 2, 1
+    $$ \sqrt{NT} \left(\hat{\beta}^\dagger - \beta\right) \sims N\left(0, D_0^{-1} D_3 D_0^{-1}\right) $$
+
+   For more details see Bai (2009), Section 7.
+
+    ```python
+    # Creating a dataset with heteroskedastic errors
+    import numpy as np
+    T, N, k = 150, 200, 2
+    F = np.random.normal(1, 1, (T, k))
+    L = np.random.normal(-2, 1, (N, k))
+    Lx1 = np.random.normal(2, 1, (N, k))
+    Lx2 = np.random.normal(-1, 1, (N, k))
+    X1 = 1 + F @ Lx1.T + np.random.normal(0, 1, (T, N))
+    X2 = 2 + F @ Lx2.T + np.random.normal(0, 1, (T, N))
   
-  sigmait = np.random.chisquare(2, (T, N)).reshape((T, N))
-  E = np.random.normal(0, 1, (T, N)) * sigmait
-
-  Y = alpha + beta1 * X1 + beta2 * X2 + F @ L.T + E
-
-  # Estimating the IFE model with heteroskedastic variance
-  Output = IFE.IFE(Y, [X1, X2], fixed_effects='twoways', Variance_type='heteroskedastic')
-
-  # Summarizing the results
-  Output.summary()
-  ```
+    alpha, beta1, beta2 = -2, 2, 1
+    
+    sigmait = np.random.chisquare(2, (T, N)).reshape((T, N))
+    E = np.random.normal(0, 1, (T, N)) * sigmait
+  
+    Y = alpha + beta1 * X1 + beta2 * X2 + F @ L.T + E
+  
+    # Estimating the IFE model with heteroskedastic variance
+    Output = IFE.IFE(Y, [X1, X2], fixed_effects='twoways', Variance_type='heteroskedastic')
+  
+    # Summarizing the results
+    Output.summary()
+    ```
 
 ## Features
 
