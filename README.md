@@ -47,9 +47,7 @@ import InteractiveFixedEffect as IFE
 
 To estimate $\hat{F}_t$, $\hat{\lambda}_i$, and $\hat{k}$, consider the following model:
 
-<p align="center">
-        <img src="https://quicklatex.com/cache3/7b/ql_ceac7db3998b0272b70ab6ca4ddb3a7b_l3.png" alt="Equation">
-</p>
+ $$ X_{it} = \lambda_i^\prime F_t + \varepsilon_{it} $$
 
 where $F_{t}$ and $\lambda_i$ are $k \times 1$ matrices.
 
@@ -71,13 +69,12 @@ PCA.summary()
 ### Estimating the Interactive Fixed Effects Model
 
 To estimate the interactive fixed effects model:
-<p align="center">
-        <img src="https://quicklatex.com/cache3/d5/ql_88885fa8fe17ebe7ce4363aaebcc2bd5_l3.png" alt="Equation">
-</p>
 
+$$ Y_{it} = X_{it}^\prime \beta + \lambda_i^\prime F_t + \varepsilon_{it} $$
 
 1) Assuming $\epsilon_{it}$ is i.i.d:
-      <p align="center">
+
+   <p align="center">
         <img src="https://quicklatex.com/cache3/1e/ql_6d3321d6ab63556005f4ee6cf5a9e31e_l3.png" alt="Equation">
       </p>
     
@@ -103,7 +100,7 @@ To estimate the interactive fixed effects model:
     Output.summary()
     ```
 
-2) Assuming heteroskedastic variance of $\epsilon_{it}$:
+3) Assuming heteroskedastic variance of $\epsilon_{it}$:
 
     A bias-correction procedure is applied:
 
