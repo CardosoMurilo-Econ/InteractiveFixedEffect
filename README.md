@@ -74,7 +74,7 @@ $$ Y_{it} = X_{it}^\prime \beta + \alpha_i + \gamma_t + \lambda_i^\prime F_t + \
 
 1) Assuming $\epsilon_{it}$ is i.i.d:
 
-$$ \sqrt{NT} (\hat{\beta} - \beta) \sim N\left(0, \sigma^2 D^{-1}\right) $$
+$$ \sqrt{NT} \left(\hat{\beta} - \beta\right) \sim N\left(0, \sigma^2 D^{-1}\right) $$
       
 ```python
 # Creating a random dataset
@@ -106,7 +106,7 @@ $$ \hat{\beta}^\dagger = β - (1/N) B - (1/T) C $$
 
 and
 
-$$ \sqrt{NT} \left(\hat{\beta}^\dagger - \beta\right) \sims N\left(0, D_0^{-1} D_3 D_0^{-1}\right) $$
+$$ \sqrt{NT} \left(\hat{\beta}^\dagger - \beta\right) \sim N\left(0, D_0^{-1} D_3 D_0^{-1}\right) $$
 
 For more details see Bai (2009), Section 7.
 
