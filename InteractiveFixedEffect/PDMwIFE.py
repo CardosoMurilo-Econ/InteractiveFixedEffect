@@ -1,8 +1,8 @@
+import torch
 from .factor_dimensionality import _FDE, _PCA
 from .class_def import Matrix, k_class, k_max_class, criteria_class, var_type, fixed_effect
 from .Device_aux_functions import move_to_device, get_device, move_to_cpu
 import numpy as np
-import torch
 import pandas as pd
 import scipy.stats as stats
 torch.backends.cudnn.deterministic = True

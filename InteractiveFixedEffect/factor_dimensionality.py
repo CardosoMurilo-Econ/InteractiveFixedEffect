@@ -1,6 +1,6 @@
+import torch
 import numpy as np
 import pandas as pd
-import torch
 from .Device_aux_functions import move_to_device, get_device, move_to_cpu
 torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
