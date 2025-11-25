@@ -129,7 +129,7 @@ E = np.random.normal(0, 1, (T, N)) * sigmait
 Y = alpha + beta1 * X1 + beta2 * X2 + F @ L.T + E
 
 # Estimating the IFE model with heteroskedastic variance
-Output = IFE.IFE(Y, [X1, X2], fixed_effects='twoways', Variance_type='heteroskedastic')
+Output = IFE.IFE(Y, [X1, X2], fixed_effects='twoways', variance_type='heteroskedastic')
 
 # Summarizing the results
 Output.summary()
@@ -160,7 +160,7 @@ If `True`, CUDA is available, and functions can be run with `Torch_cuda = True`.
 ```python
 import InteractiveFixedEffect as IFE
 
-Output = IFE.IFE(Y, [X1, X2], fixed_effects='twoways', Variance_type='heteroskedastic', Torch_cuda=True)
+Output = IFE.IFE(Y, [X1, X2], fixed_effects='twoways', variance_type='heteroskedastic', Torch_cuda=True)
 ```
 
 ## 🚀 Performance Comparison  
