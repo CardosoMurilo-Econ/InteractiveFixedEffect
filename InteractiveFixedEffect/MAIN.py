@@ -317,7 +317,8 @@ class InteractiveFixedEffectModelOutput:
 
         print("\nResiduals")
         r_squared = 1 - np.var(self.residuals) / np.var(self.data.Y)
-        print(f" Mean = {np.mean(self.residuals).round(4)}, Std = {np.std(self.residuals).round(4)}, R² = {r_squared.round(4)}")
+        r_std = np.sqrt(np.sum(self.residuals ** 2) / self.df)
+        print(f" Mean = {np.mean(self.residuals):.4f}, Std = {r_std:.4f}, R² = {r_squared:.4f}")
         if self.fixed_effects is not None:
                 print("\nFixed Effects")
                 print(f"Intercept: {self.fixed_effects['intercept'].flatten()[0].round(4) if self.fixed_effects['intercept'] is not None else 'N/A'}"), 
