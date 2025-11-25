@@ -20,16 +20,27 @@ def print_progress(beta, k, i, crit_eval, f_eval, previoues_f_eval, SOR_hyperpar
                 sys.stdout.write("\n")
                 sys.stdout.write("\n")
                 sys.stdout.write("\n")
+        
+        sys.stdout.write("\033[F" * 4)  # Move up 4 lines to overwrite previous values
+        sys.stdout.write(f"Iteration {i+1}:\n") 
 
+        # Print beta values 
+        if len(beta.flatten()) <= 5:
+            beta_print = [f"Beta[{j}] = {b:.6f}" for j, b in enumerate(beta.flatten())]
+        else:
+            beta_print = [f"Beta[{j}] = {b:.6f}" for j, b in enumerate(beta.flatten()[:4])]
+            beta_print.append("...")  # Indicate that there are more coefficients not shown
+            beta_print.append(f" | Avg Beta: {np.mean(beta):.6f}")
+        sys.stdout.write(', '.join(beta_print) + f", Number of Factors = {k}, SOR_parameter = {SOR_hyperparam:.2f} \n")
+
+        # Print criteria evaluations 
         num_criteria = len(crit_eval)
         names = ['Relative Norm: ', 'Objective Function Diff: ', 'Gradient Norm: '][:num_criteria]
         delta = (f_eval - previoues_f_eval)
+        sys.stdout.write(f"Obj Function Value = {f_eval:.5f}, Delta Obj Function = {delta:.12} \n")  
+
 
         result_string = ", ".join([f"{name}{eval:.12f}" for name, eval in zip(names, crit_eval)])
-        sys.stdout.write("\033[F" * 4)  # Move up 4 lines to overwrite previous values
-        sys.stdout.write(f"Iteration {i+1}:\n")  
-        sys.stdout.write(', '.join([f"B{i} = {vi:.3f}" for i, vi in enumerate(beta.flatten())]) + f", Number of Factors = {k}, SOR_parameter = {SOR_hyperparam:.2f} \n")
-        sys.stdout.write(f"Obj Function Value = {f_eval:.5f}, Delta Obj Function = {delta:.12} \n")  
         sys.stdout.write(result_string + "\n")
         sys.stdout.flush()
 
