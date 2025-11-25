@@ -92,7 +92,7 @@ alpha, beta1, beta2 = -2, -1, 2
 Y = alpha + beta1 * X1 + beta2 * X2 + F @ L.T + E
 
 # Estimating the IFE model
-Output = IFE.IFE(Y, [X1, X2], fixed_effects='twoways', Variance_type='iid')
+Output = IFE.IFE(Y, [X1, X2], fixed_effects='twoways', variance_type='iid')
 
 # Summarizing the results
 Output.summary()
