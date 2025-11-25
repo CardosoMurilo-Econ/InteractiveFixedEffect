@@ -1,4 +1,3 @@
-from .factor_dimensionality import *
-from .PDMwIFE import *
+from .MAIN import *
 
 __all__ = ["PCA", "factor_dimensionality", 'IFE']

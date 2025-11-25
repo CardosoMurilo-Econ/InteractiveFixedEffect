@@ -11,7 +11,7 @@ def get_device():
         print("GPU not available. Using CPU.")
         return torch.device("cpu")
 
-def ensure_tensor(data, dtype=torch.float32):
+def ensure_tensor(data, dtype=torch.float64):
     """Converts data to a PyTorch tensor if it's not already one."""
     if not isinstance(data, torch.Tensor):
         return torch.tensor(data, dtype=dtype)
