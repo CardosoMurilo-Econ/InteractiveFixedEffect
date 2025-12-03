@@ -336,186 +336,202 @@ class InteractiveFixedEffectModelOutput:
 def IFE(Y: Matrix,
         X: list[Matrix],
         k: int = None,
+        k_max: k_max_class = 8,
         fixed_effects: fixed_effect = 'twoways',
         variance_type: var_type = 'iid',
         criteria: criteria_class = ['IC1'],
-        k_max: k_max_class = 8,
         max_iter: int = 10_000,
         convergence_criteria: criteria_conv_class = ['Relative_norm', 'Obj_fun', 'Grad_norm'],
-        tolerance: np.ndarray = np.array([1e-6, 1e-12, 1e-5]),
-        SOR_hyperparam: float = 1.0,
-        max_SOR_hyperparam: float = None,
-        inc_factor: float = 1.1, 
-        dec_factor: float = 0.5,
+        tolerance: np.ndarray = np.array([1e-12, 1e-12, 1e-6]),
+        convergence_method: str = 'Random_SOR',
         verbose: bool = False,
-        torch_cuda: bool = False) -> InteractiveFixedEffectModelOutput:
+        torch_cuda: bool = False,
+        **options_convergence_method) -> InteractiveFixedEffectModelOutput:
         
-        '''
-        Estimates the **Interactive Fixed Effects** model for a large panel dataset by the following equation:
+    '''
+    Estimates the **Interactive Fixed Effects** model for a large panel dataset by the following equation:
 
-        .. math:: Y_{it} = X_{it} \\beta + F_{it} L^{T} + \epsilon_{it}
-        
-        The algorithm is based on the paper **"PANEL DATA MODELS WITH INTERACTIVE FIXED EFFECTS"** by Bai (2009): https://doi.org/10.3982/ECTA6135.
-        
-        Parameters:
-                Y (numpy.ndarray or torch.Tensor): Dependent variable of the model. Shape (T, N).
-                X (list[numpy.ndarray or torch.Tensor]): List of covariates. Each element of the list is a covariate matrix. Shape (T, N, p).
-                k (int, optional): Number of factors to be estimated. Default is **None**. If **None**, the number of factors is estimated by the factor dimensionality algorithm.
-                fixed_effects (str, optional): Type of fixed effects. Options are: 
-                        - 'Twoways' (default): Include both individual and time fixed effects. We estimate the model by transforming the data as described in Bai (2009). More efficient and recommended.
-                        - 'None': Not include fixed effects. In this case, the model is estimated by the original data.
+    Y_{it} = X_{it} \\beta + F_{it} L^{T} + \epsilon_{it}
+    
+    The algorithm is based on the paper **"PANEL DATA MODELS WITH INTERACTIVE FIXED EFFECTS"** by Bai (2009): https://doi.org/10.3982/ECTA6135.
+    
+    Parameters:
+        Y (numpy.ndarray or torch.Tensor): Dependent variable of the model. Shape (T, N).
+        X (list[numpy.ndarray or torch.Tensor]): List of covariates. Each element of the list is a covariate matrix. Shape (T, N, p).
+        k (int, optional): Number of factors to be estimated. Default is **None**. If **None**, the number of factors is estimated by the factor dimensionality algorithm.
+        k_max (int, optional): Maximum number of factors to be estimated. Must be less than **min(T, N)**. Default is **8**. If the true dimensionality is less than K_max the algorithm will be consistent, however, more k_max will increase the computational cost. Default is 8.
+        fixed_effects (str, optional): Type of fixed effects. Options are: 
+            - 'None': Not include fixed effects. In this case, the model is estimated by the original data.
+            - 'demeaned:' Use the demeaned data to estimate the model.
+            - 'twoways' (default): Include both individual and time fixed effects. We estimate the model by 
+            transforming the data as described in Bai (2009). More efficient and recommended.
+        variance_type (str, optional): Type of variance-covariance matrix: 
+            - 'iid' (default): Assume that the error in model is independent and identically distributed. So, 
+            sqrt(NT) (beta_hat - beta) ~ N(0, σ^2 D^(-1)).
+            - 'heteroskedastic': Assume the error in model is independent but heteroskedastic in both dimensions. 
+            In this case, the estimator is biased, so we aplly a bias correction as described in Bai (2009):
+                    - β_hat = β - (1/N) B - (1/T) C
+                    - sqrt(NT) (β_hat - β) ~ N(0, D_0^(-1) D_3 D_0^(-1))
+            see Bai (2009) for more details.
+        criteria (list, optional): The criteria used to estimate the factor dimensionality. All criterias in the list will be printed but use only the first criteria in the list to determine the factor dimensionality.
+            Options are:
+            - 'IC1' (default): Information Criterion such that
+                    IC1 = ln(V(k, F)) + k * S * ln(1/S), where S = (N+T)/NT.
+            - 'IC2': Information Criterion with the form
+                    IC2 = ln(V(k, F)) + k * S * ln(C^2), where S = (N+T)/NT and C = min{N^(1/2), T^(1/2)}.
+            - 'IC3': Information Criterion such that
+                    IC3 = ln(V(k, F)) + k * ln(C^2)/C^2, whereC = min{N^(1/2), T^(1/2)}.
+            - 'PC1': Information Criterion such that
+                    PC1 = V(k, F) + k * sigma^2 * S * ln(1/S), where S = (N+T)/NT.
+            - 'PC2': Information Criterion such that
+                    PC2 = V(k, F) + k * sigma^2 * S * ln(C^2), where S = (N+T)/NT and C = min{N^(1/2), T^(1/2)}.
+            - 'PC3': Information Criterion such that
+                    PC2 = V(k, F) + k * sigma^2 * ln(C^2)/C^2, where C = min{N^(1/2), T^(1/2)}.
+                    Default is ['IC1'].
+        max_iter (int, optional): Maximum number of iterations. Default is 10_000. 
+        convergence_criteria (list, optional): List of convergence criteria to be used in the algorithm. Options are:
+            - 'Relative_norm': Convergence based on the relative norm of the difference between the  
+            estimated coefficients in two consecutive iterations.
+            - 'Obj_fun': Convergence based on the difference between the objective function in two consecutive 
+            iterations.
+            - 'Grad_norm': Convergence based on the norm of the gradient of the objective function.
+            Default is **['Relative_norm', 'Obj_fun', 'Grad_norm']**.
+        tolerance (numpy.ndarray, optional): Tolerance levels for each convergence criteria. The order of the tolerance levels must be the same as the order of the convergence criteria. Default is **np.array([1e-12, 1e-12, 1e-6])**.
+        convergence_method (str, optional): Method used to accelerate the convergence of the algorithm. Options are:
+            - 'None': No acceleration method is used.
+            - 'SOR' (default): Successive Over-Relaxation method:
+                    β^(new) = β^(old) + ω * (β^(estimated) - β^(old))
+                where ω is the SOR_hyperparam (default is 2). 
+            - 'Random_SOR': Hybrid method with Successive Over-Relaxation method and random search. 
+            - 'AndersonAcceleration': Anderson Acceleration method for more details see 
+            https://github.com/joshnguyen99/anderson_acceleration.
+            Additional hyperparameters for the convergence method can be passed as keyword arguments.
+        verbose (bool, optional): If **True**, print the convergence information at each iteration. Default is **False**.
+        Torch_cuda (bool): Use torch GPU for calculations. If a GPU is available, increase considerably the performance for matrix with large dimensions (N, T > 500). However, cuda 11.8+ torch library is necessary. For installation of cuda torch see: https://pytorch.org/get-started/locally/. It is recomended utilized a virtual enviroment in this case and is mandatory install cuda torch before the installation of the this function's library. If the cuda is not installed on the current virtual enviroment, exclude torch library and reinstall it cuda version. Default is **False**.
 
-                Variance_type (str, optional): Type of variance-covariance matrix: 
-                        - 'iid': Assume that the error in model is independent and identically distributed. So, sqrt(NT) (beta_hat - beta) ~ N(0, σ^2 D^(-1)).
-                        - 'heteroskedastic': Assume the error in model is independent but heteroskedastic in both dimensions. In this case, the estimator is biased, so we aplly a bias correction as described in Bai (2009):
-                                - β_hat = β - (1/N) B - (1/T) C
-                                - \sqrt(NT) (β_hat - β) ~ N(0, D_0^(-1) D_3 D_0^(-1))
-                        see Bai (2009) for more details.
-                        Default is 'iid'.
-                Criteria (list, optional): The criteria used to estimate the factor dimensionality. All criterias in the list will be printed but use only the first criteria in the list to determine the factor dimensionality.
-                        Options are:
-                        - 'IC1': Information Criterion such that
-                                IC1 = ln(V(k, F)) + k * S * ln(1/S), where S = (N+T)/NT.
-                        - 'IC2': Information Criterion with the form
-                                IC2 = ln(V(k, F)) + k * S * ln(C^2), where S = (N+T)/NT and C = min{N^(1/2), T^(1/2)}.
-                        - 'IC3': Information Criterion such that
-                                IC3 = ln(V(k, F)) + k * ln(C^2)/C^2, whereC = min{N^(1/2), T^(1/2)}.
-                        - 'PC1': Information Criterion such that
-                                PC1 = V(k, F) + k * sigma^2 * S * ln(1/S), where S = (N+T)/NT.
-                        - 'PC2': Information Criterion such that
-                                PC2 = V(k, F) + k * sigma^2 * S * ln(C^2), where S = (N+T)/NT and C = min{N^(1/2), T^(1/2)}.
-                        - 'PC3': Information Criterion such that
-                                PC2 = V(k, F) + k * sigma^2 * ln(C^2)/C^2, where C = min{N^(1/2), T^(1/2)}.
-                                Default is ['IC1'].
-                k_max (int, optional): Maximum number of factors to be estimated. Must be less than **min(T, N)**. Default is **8**. If the true dimensionality is less than K_max the algorithm will be consistent, however, more k_max will increase the computational cost. 
-                        Default is 8.
-                Tol (float, optional): Tolerance for convergence. Default is 1e-6.
-                Tol_2order (float, optional): Tolerance for second order convergence. This tolerance is used to check if the first order convergence criteria is no longer decreasing significantly across interaction. How much bigger is this value, faster they stop the interaction in case of non-convergence, however, a high value can stop the code before converging. Default is 1e-9.
-                Max_iter (int, optional): Maximum number of iterations. Default is 2_000. 
-                verbose (bool, optional): If **True**, print the convergence information at each iteration. Default is **False**.
-                Torch_cuda (bool): Use torch GPU for calculations. If a GPU is available, increase considerably the performance for matrix with large dimensions (N, T > 500). However, cuda 11.8+ torch library is necessary. For installation of cuda torch see: https://pytorch.org/get-started/locally/. It is recomended utilized a virtual enviroment in this case and is mandatory install cuda torch before the installation of the this function's library. If the cuda is not installed on the current virtual enviroment, exclude torch library and reinstall it cuda version. Default is **False**.
-        
-        Returns:
-                IFE_OUTPUT: A class (IFE_OUTPUT) containing the following attributes: 
-                        - 'Data' (class): A class containing the original data used in the model. Data.Y is the dependent variable and Data.X is the list of covariates matrix.
-                        - 'Coefficients_matrix' (panda.DataFrame): A pandas DataFrame with the estimated coefficients, standard deviation, t-statistic and p-value.
-                        - 'F_hat' (numpy.ndarray): Estimated factors structure. Shape (T, k).
-                        - 'L_hat' (numpy.ndarray): Estimated loadings structure. Shape (N, k).
-                        - 'k' (int): Number of factors.
-                        - 'residuals' (numpy.ndarray): Residuals of the model. Shape (T, N).
-                        - 'Criteria' (str): Criteria used to estimate the factor dimensionality.
-                        - 'Number_of_interaction' (int): Number of iterations until convergence. If Number_of_interaction is equal to Max_iter, the algorithm did not converge.
-                        - 'Convergence_value' (int): Convergence value calculated as the norm of the difference between the estimated coefficients in two consecutive iterations.
-                        - 'Convergence_value_stand' (int): Convergence value standardized by the norm of the estimated coefficients.
-                        - 'Second_order_Convergence_value' (int): Convergence value calculated as the difference between the convergence value in two consecutive iterations. (standardized by the norm of the estimated coefficients).
-                        - 'cov' (numpy.ndarray): Estimated covariance matrix of the coefficients. Shape (p, p).
-        
-        Example:
+    Returns:
+        IFE_OUTPUT: A class (IFE_OUTPUT) containing the following attributes: 
+            - 'Data' (class): A class containing the original data used in the model. Data.Y is the dependent 
+            variable and Data.X is the list of covariates matrix.
+            - 'Coefficients_matrix' (panda.DataFrame): A pandas DataFrame with the estimated coefficients, 
+            standard deviation, t-statistic and p-value.
+            - 'F_hat' (numpy.ndarray): Estimated factors structure. Shape (T, k).
+            - 'L_hat' (numpy.ndarray): Estimated loadings structure. Shape (N, k).
+            - 'k' (int): Number of factors.
+            - 'residuals' (numpy.ndarray): Residuals of the model. Shape (T, N).
+            - 'Criteria' (str): Criteria used to estimate the factor dimensionality.
+            - 'Number_of_interaction' (int): Number of iterations until convergence. If Number_of_interaction 
+            is equal to Max_iter, the algorithm did not converge.
+            - 'Convergence_value' (int): Convergence value calculated as the norm of the difference between the 
+            estimated coefficients in two consecutive iterations.
+            - 'Convergence_value_stand' (int): Convergence value standardized by the norm of the estimated 
+            coefficients.
+            - 'Second_order_Convergence_value' (int): Convergence value calculated as the difference between the 
+            convergence value in two consecutive iterations. (standardized by the norm of the estimated 
+            coefficients).
+            - 'cov' (numpy.ndarray): Estimated covariance matrix of the coefficients. Shape (p, p).
+    
+    Example:
 
-        ```python
+    ```python
 
-        # Create a random dataset
-        T, N, k = 200, 100, 2
-        F = np.random.normal(1, 1, (T, k))
-        L = np.random.normal(-2, 1, (N, k))
-        E = np.random.normal(0, 1, (T, N))
-        Lx1 = np.random.normal(2, 1, (N, k))
-        Lx2 = np.random.normal(-1, 1, (N, k))
-        X1 = 1 + F @ Lx1.T + np.random.normal(0, 1, (T, N))
-        X2 = 2 + F @ Lx2.T + np.random.normal(0, 1, (T, N))
+    # Create a random dataset
+    T, N, k = 200, 100, 2
+    F = np.random.normal(1, 1, (T, k))
+    L = np.random.normal(-2, 1, (N, k))
+    E = np.random.normal(0, 1, (T, N))
+    Lx1 = np.random.normal(2, 1, (N, k))
+    Lx2 = np.random.normal(-1, 1, (N, k))
+    X1 = 1 + F @ Lx1.T + np.random.normal(0, 1, (T, N))
+    X2 = 2 + F @ Lx2.T + np.random.normal(0, 1, (T, N))
 
-        alpha = -2
-        beta1 = -1
-        beta2 = 2
+    alpha = -2
+    beta1 = -1
+    beta2 = 2
 
-        Y = alpha + beta1 * X1 + beta2 * X2 + F @ L.T + E
+    Y = alpha + beta1 * X1 + beta2 * X2 + F @ L.T + E
 
-        # Estimate the model
-        import factorAnalysis as fa
-        output = fa.IFE(Y, [X1, X2], Criteria=['IC1'], k_max=8)
+    # Estimate the model
+    import factorAnalysis as fa
+    output = fa.IFE(Y, [X1, X2], Criteria=['IC1'], k_max=8)
 
-        # Print the summary
-        output.summary()
+    # Print the summary
+    output.summary()
 
-        # Access the estimated coefficients
-        output.Coefficients_matrix
+    # Access the estimated coefficients
+    output.Coefficients_matrix
 
-        # Access the estimated factors structure
-        common_factor = output.F_hat
-        loading_factor = output.L_hat
+    # Access the estimated factors structure
+    common_factor = output.F_hat
+    loading_factor = output.L_hat
 
-        FL = F @ L.T
+    ```
+    '''
 
-        ```
-        '''
-
-        # Validate inputs #
-        Y = _validate_input(Y, Matrix)
-        X = [_validate_input(x, Matrix) for x in X]
-        T,N = Y.shape
-        k = _validate_input(k, k_class, N=N, T=T)
-        k_max = _validate_input(k_max, k_max_class, N=N, T=T)
-        fixed_effects = _validate_input(fixed_effects, fixed_effect)
-        variance_type = _validate_input(variance_type, var_type)
-        criteria = _validate_input(criteria, criteria_class)
-        convergence_criteria = _validate_input(convergence_criteria, criteria_conv_class)
-        max_iter = _validate_input(max_iter, int)
-        tolerance = _validate_input(tolerance, tolerance_class, convergence_criteria=convergence_criteria)
-        SOR_hyperparam, max_SOR_hyperparam, inc_factor, dec_factor = _validate_input(SOR_hyperparam, SOR_hyperparam_class, max_SOR_hyperparam=max_SOR_hyperparam, inc_factor=inc_factor, dec_factor=dec_factor)
-        verbose = _validate_input(verbose, boll_class, name = 'echo')
-        torch_cuda = _validate_input(torch_cuda, boll_class, name = 'torch_cuda')
-        #save_path = _validate_input(save_path, boll_class, name = 'save_path')
-        
-
-        if not torch_cuda:
-            from .PDMwIFE_numpy import _est_alg, _get_two_way_transform_data, _demean, _get_fixed_effects, _VAR_COV_Estimation
-        else:
-            from .PDMwIFE_torch import _est_alg, _get_two_way_transform_data, _demean, _get_fixed_effects, _VAR_COV_Estimation, move_to_cpu
-             
-        if fixed_effects == 'twoways':
-            dotY, Y_tdot, Y_idot, Y_dobledot, dotX, X_tdot, X_idot, X_dobledot = _get_two_way_transform_data(Y, X)
-            Y_adj = dotY
-            X_adj = dotX
-        elif fixed_effects == 'demeaned':
-            Y_demeaned, X_demeaned = _demean(Y, X)
-            Y_adj = Y_demeaned
-            X_adj = X_demeaned
-        else:
-            Y_adj = Y
-            X_adj = X
-
-        # Estimate the coefficients, factors and loadings
-        beta, F_hat, L_hat, k, N_sim, converges, crit_eval = _est_alg(
-            Y_adj, X_adj, k, criteria, k_max, 'common', #restrict = common loading (F'F/T = I) 
-            max_iter, convergence_criteria, tolerance, 
-            SOR_hyperparam, max_SOR_hyperparam, inc_factor, dec_factor,
-            verbose, save_path = False
-        )
-
-        # Compute variance-covariance matrix
-        beta, cov, residuals, A, D0, inv_D0, X_2, Z, df = _VAR_COV_Estimation(Y_adj, X_adj, beta, F_hat, L_hat, variance_type, fixed_effects)
-
-        if torch_cuda:
-
-            beta = move_to_cpu(beta)
-            F_hat = move_to_cpu(F_hat)
-            L_hat = move_to_cpu(L_hat)
-            residuals = move_to_cpu(residuals)
-            cov = move_to_cpu(cov)
-            Y = move_to_cpu(Y)
-            Z = move_to_cpu(Z)
+    # Validate inputs #
+    Y = _validate_input(Y, Matrix)
+    X = [_validate_input(x, Matrix) for x in X]
+    T,N = Y.shape
+    k = _validate_input(k, k_class, N=N, T=T)
+    k_max = _validate_input(k_max, k_max_class, N=N, T=T)
+    fixed_effects = _validate_input(fixed_effects, fixed_effect)
+    variance_type = _validate_input(variance_type, var_type)
+    criteria = _validate_input(criteria, criteria_class)
+    convergence_criteria = _validate_input(convergence_criteria, criteria_conv_class)
+    max_iter = _validate_input(max_iter, int)
+    tolerance = _validate_input(tolerance, tolerance_class, convergence_criteria=convergence_criteria)
+    verbose = _validate_input(verbose, boll_class, name = 'echo')
+    torch_cuda = _validate_input(torch_cuda, boll_class, name = 'torch_cuda')
+    #save_path = _validate_input(save_path, boll_class, name = 'save_path')
+    
+    if not torch_cuda:
+        from .PDMwIFE_numpy import _est_alg, _get_two_way_transform_data, _demean, _get_fixed_effects, _VAR_COV_Estimation
+    else:
+        from .PDMwIFE_torch import _est_alg, _get_two_way_transform_data, _demean, _get_fixed_effects, _VAR_COV_Estimation, move_to_cpu
             
+    if fixed_effects == 'twoways':
+        dotY, Y_tdot, Y_idot, Y_dobledot, dotX, X_tdot, X_idot, X_dobledot = _get_two_way_transform_data(Y, X)
+        Y_adj = dotY
+        X_adj = dotX
+    elif fixed_effects == 'demeaned':
+        Y_demeaned, X_demeaned = _demean(Y, X)
+        Y_adj = Y_demeaned
+        X_adj = X_demeaned
+    else:
+        Y_adj = Y
+        X_adj = X
 
-        k_hat = F_hat.shape[1]
+    # Estimate the coefficients, factors and loadings
+    beta, F_hat, L_hat, k, N_sim, converges, crit_eval, _ = _est_alg(
+        Y_adj, X_adj, k, criteria, k_max, 'common', #restrict = common loading (F'F/T = I) 
+        max_iter, convergence_criteria, tolerance, convergence_method,
+        verbose, save_path = False,
+        **options_convergence_method
+    )
 
-        # Compute fixed effects if necessary
-        if fixed_effects == 'twoways':
-            mu, alpha_i, gamma_t = _get_fixed_effects(fixed_effects=fixed_effects, beta=beta, Y_tdot=Y_tdot, Y_idot=Y_idot, Y_dobledot=Y_dobledot, X_tdot=X_tdot, X_idot=X_idot, X_dobledot=X_dobledot)
-        elif fixed_effects == 'demeaned':
-            mu, alpha_i, gamma_t = _get_fixed_effects(fixed_effects=fixed_effects, beta=beta, Y=Y, X=X, F_hat=F_hat, L_hat=L_hat)
-        else:
-            mu, alpha_i, gamma_t = None, None, None
+    # Compute variance-covariance matrix
+    beta, cov, residuals, A, D0, inv_D0, X_2, Z, df = _VAR_COV_Estimation(Y_adj, X_adj, beta, F_hat, L_hat, variance_type, fixed_effects)
 
-        fixed_effects = {'intercept': mu, 'individual': alpha_i, 'time': gamma_t}
+    if torch_cuda:
 
-        return InteractiveFixedEffectModelOutput(beta, F_hat, L_hat, k_hat, N_sim, converges, crit_eval, residuals, cov, criteria, Y, X_2, fixed_effects, A, D0, Z, df)
+        beta = move_to_cpu(beta)
+        F_hat = move_to_cpu(F_hat)
+        L_hat = move_to_cpu(L_hat)
+        residuals = move_to_cpu(residuals)
+        cov = move_to_cpu(cov)
+        Y = move_to_cpu(Y)
+        Z = move_to_cpu(Z)
+        
+    k_hat = F_hat.shape[1]
+
+    # Compute fixed effects if necessary
+    if fixed_effects == 'twoways':
+        mu, alpha_i, gamma_t = _get_fixed_effects(fixed_effects=fixed_effects, beta=beta, Y_tdot=Y_tdot, Y_idot=Y_idot, Y_dobledot=Y_dobledot, X_tdot=X_tdot, X_idot=X_idot, X_dobledot=X_dobledot)
+    elif fixed_effects == 'demeaned':
+        mu, alpha_i, gamma_t = _get_fixed_effects(fixed_effects=fixed_effects, beta=beta, Y=Y, X=X, F_hat=F_hat, L_hat=L_hat)
+    else:
+        mu, alpha_i, gamma_t = None, None, None
+
+    fixed_effects = {'intercept': mu, 'individual': alpha_i, 'time': gamma_t}
+
+    return InteractiveFixedEffectModelOutput(beta, F_hat, L_hat, k_hat, N_sim, converges, crit_eval, residuals, cov, criteria, Y, X_2, fixed_effects, A, D0, Z, df)
