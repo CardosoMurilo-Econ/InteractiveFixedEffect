@@ -1,7 +1,6 @@
 import numpy as np
 import numpy.linalg as LA
 
-
 class SOR_update_method:
     def __init__(self, p, w: float = 1.2, w_max: float = None,
                  inc_factor: float = 1.1, dec_factor: float = 0.5):
@@ -288,8 +287,8 @@ def set_convergence_alg(p, convergence_method: str = 'SOR', **options_convergenc
         dist_random_draw = 'normal'
 
     elif convergence_method in ['sor', 'random_sor']: 
-        w = options_convergence_method.get('SOR_hyperparam', 1.5)
-        w_max = options_convergence_method.get('max_SOR_hyperparam', 2.0)
+        w = options_convergence_method.get('SOR_hyperparam', 2)
+        w_max = options_convergence_method.get('max_SOR_hyperparam', w)
         inc_factor = options_convergence_method.get('inc_factor', 1.1)
         dec_factor = options_convergence_method.get('dec_factor', 0.5)
         

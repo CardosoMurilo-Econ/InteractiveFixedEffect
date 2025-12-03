@@ -200,7 +200,7 @@ def factor_dimensionality(
         if k is not None:
             warnings.warn("Warning: k is provided by the user. No factor dimensionality estimation will be performed.")
             
-            F_hat, L_hat, _, _, _, _, _, _ = _PCA(X, k, restrict)
+            F_hat, L_hat, _, _, _, _, _ = _PCA(X, k, restrict)
             criteria_matrix = None 
             k_all = None
             return FDE_output(criteria_matrix, criteria, k_max, F_hat, L_hat, k, k_all, X, X - F_hat @ L_hat.T, Number_Iterations = None)

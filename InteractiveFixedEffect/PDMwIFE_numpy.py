@@ -285,6 +285,7 @@ def _est_alg(Y: Matrix,
                 - n (int): Number of iterations until convergence.
                 - converges (bool): Whether the algorithm converged.
                 - crit_eval (list): Final evaluation of the convergence criteria.
+                - change_method (bool): Whether the convergence method was changed during execution.
         '''
 
     T, N = Y.shape
@@ -317,6 +318,7 @@ def _est_alg(Y: Matrix,
 
     if save_path:
         path = []
+        f_eval_history = []
 
     for i in range(max_iter):
         
@@ -358,10 +360,12 @@ def _est_alg(Y: Matrix,
         
         if save_path:
             path.append(beta)
+            f_eval_history.append(f_eval/(N*T))
         
     k = ki
     if save_path:
         np.save('path.npy', path)
+        np.save('f_eval.npy', f_eval_history)
     
     return beta, F_hat, L_hat, k, i+1, converges, crit_eval, change_method
 
