@@ -20,7 +20,7 @@ def ensure_tensor(data, dtype=torch.float64):
 
 def move_to_device(tensor, device):
     """Moves tensor to the specified device only if necessary."""
-    tensor = ensure_tensor(tensor)  # Ensure it's a tensor first
+    tensor = ensure_tensor(tensor, dtype=torch.float64)  # Ensure it's a tensor first
     if tensor.device != device:
         return tensor.to(device)
     return tensor

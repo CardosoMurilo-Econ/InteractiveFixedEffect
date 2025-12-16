@@ -1,8 +1,8 @@
 import torch
 import numpy as np
 from .class_def import Matrix, k_max_class, criteria_class
-#from .factor_dimensionality_torch import _PCA, _FDE
-from .factor_dimensionality_numpy import _PCA, _FDE
+from .factor_dimensionality_torch import _PCA, _FDE
+#from .factor_dimensionality_numpy import _PCA, _FDE
 from .Device_aux_functions import move_to_cpu, move_to_device, get_device
 from .Update_method import set_convergence_alg
 
@@ -14,7 +14,7 @@ torch.set_default_dtype(torch.float64)
 # ---- Aux Functions ----- #
 # ------------------------ #
 
-def print_progress(beta, k, i, crit_eval, f_eval, previoues_f_eval, SOR_hyperparam):
+def print_progress(beta, k, i, crit_eval, f_eval, previoues_f_eval):
         import sys
         if i == 0:
                 sys.stdout.write("\n")
@@ -32,7 +32,7 @@ def print_progress(beta, k, i, crit_eval, f_eval, previoues_f_eval, SOR_hyperpar
             beta_print = [f"Beta[{j}] = {b:.6f}" for j, b in enumerate(beta.flatten()[:4])]
             beta_print.append("...")  # Indicate that there are more coefficients not shown
             beta_print.append(f" | Avg Beta: {np.mean(beta):.6f}")
-        sys.stdout.write(', '.join(beta_print) + f", Number of Factors = {k}, SOR_parameter = {SOR_hyperparam:.2f} \n")
+        sys.stdout.write(', '.join(beta_print) + f", Number of Factors = {k} \n")
 
         # Print criteria evaluations 
         num_criteria = len(crit_eval)
@@ -157,16 +157,12 @@ def _beta_estimate(y_new, x, xx_inv_xt):
 
 def _factor_estimation(W, k, k_max, criteria, restrict):
 
-    W = move_to_cpu(W)
-
     if k is not None:
         F_hat, L_hat, _, _, _, _, _ = _PCA(W, k, restrict)
         ki = k
     else:
         _, F_hat, L_hat, ki, _ = _FDE(W, k_max = k_max, Criteria=criteria, restrict = restrict)
     
-    F_hat = move_to_device(F_hat, get_device())
-    L_hat = move_to_device(L_hat, get_device())
     return F_hat, L_hat, ki
 
 def _get_estimates(beta, 
@@ -270,6 +266,10 @@ def _random_centred_beta(beta,
 
     betas_gen = torch.vstack([beta.flatten(), betas_gen])
     min_eval = np.inf
+    beta_best = beta
+    F_hat_best = torch.ones((T, k_max), device=get_device())
+    L_hat_best = torch.ones((T, k_max), device=get_device())
+    ki_best = torch.ones((1,), device=get_device())
 
     for beta in betas_gen:
 
@@ -279,10 +279,9 @@ def _random_centred_beta(beta,
     
         C_NT_square = min(T, N)
         Penalty_term = np.log(C_NT_square) / C_NT_square
-        Penalty_term = torch.tensor(Penalty_term, device=get_device(), dtype=torch.float64)
 
         f_val_adj = torch.log(f_eval/(N*T)) + ki * Penalty_term
-        if f_val_adj < min_eval:
+        if f_val_adj <= min_eval:
             beta_best = beta_est
             F_hat_best = F_hat
             L_hat_best = L_hat
@@ -301,6 +300,7 @@ def _est_alg(Y: Matrix,
             convergence_criteria: list[str] = ['Relative_norm', 'Obj_fun', 'Grad_norm'],
             tolerance: np.ndarray = np.array([1e-8, 1e-10, 1e-5]),
             convergence_method: str = 'SOR',
+            convergence_patience: int = 5,
             echo = False,
             save_path: bool = False,
             **options_convergence_method
@@ -335,11 +335,10 @@ def _est_alg(Y: Matrix,
     Y = move_to_device(Y, device)
     X = [move_to_device(M, device) for M in X]
 
-
     T, N = Y.shape
     p = len(X)
 
-    up_method, number_of_draws, dist_random_draw = set_convergence_alg(p, convergence_method, **options_convergence_method)
+    up_method, number_of_draws, dist_random_draw = set_convergence_alg(p, convergence_patience, convergence_method, **options_convergence_method)
     # x = np.empty((T*N, K + 1)) # Use np.zeros if you prefer, but empty is faster
     # x[:, 0] = 1
     
@@ -363,16 +362,18 @@ def _est_alg(Y: Matrix,
     beta = beta_initial
     change_method = False
     delta_beta = torch.abs(beta_initial - beta).flatten()
+    scale = 1
 
     if save_path:
         path = []
 
+    n_converges = 0
     for i in range(max_iter):
         
         beta_est, F_hat, L_hat, f_eval, ki = _random_centred_beta(beta,
                                                                 Y, x, xx_inv_xT, 
                                                                 k, k_max, criteria, restrict,
-                                                                scale = delta_beta, number_of_draws=number_of_draws, dist = dist_random_draw)
+                                                                scale = scale, number_of_draws=number_of_draws, dist = dist_random_draw)
 
         crit_eval = _criteria_calculation(beta_est, beta, 
                          f_eval, previous_f_eval,
@@ -380,10 +381,11 @@ def _est_alg(Y: Matrix,
                          convergence_criteria)
         
         if echo:
-            print_progress(beta_est, ki, i, crit_eval, f_eval/(N*T), previous_f_eval/(N*T), 0)
+            print_progress(beta_est, ki, i, crit_eval, f_eval/(N*T), previous_f_eval/(N*T))
 
         converges = all(crit_eval.cpu().numpy() <= tolerance)
-        if converges:
+        n_converges += 1 if converges else 0
+        if n_converges >= convergence_patience:
             beta = beta_est
             break
 
@@ -402,6 +404,7 @@ def _est_alg(Y: Matrix,
         beta_new = torch.tensor(theta[:p], device = device).reshape(-1, 1)
 
         delta_beta = torch.abs(beta_est - beta).flatten()
+        scale = 2*torch.sqrt(delta_beta)
         beta = beta_new
         previous_f_eval = f_eval
         

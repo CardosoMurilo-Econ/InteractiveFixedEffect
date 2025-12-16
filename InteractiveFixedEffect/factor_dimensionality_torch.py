@@ -1,6 +1,7 @@
 import torch
 from .Device_aux_functions import move_to_device, get_device, move_to_cpu
 from .class_def import k_max_class, criteria_class, Matrix
+from scipy.sparse.linalg import eigsh
 
 torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
@@ -31,53 +32,53 @@ def _PCA(X: Matrix,
         
     '''
 
-    X = move_to_device(X, device=get_device())
+    #X = move_to_device(X, device=get_device())
 
     # Calculate the dimensions of the data matrix
     T, N = X.shape
-
-    T = move_to_device(T, get_device())
-    N = move_to_device(N, get_device())
 
     # optimize the restriction method if not specified
     if restrict == 'optimize':
         restrict = 'common' if N >= T else 'loading'
 
     if restrict == 'common':
-        F, L = _restrict_to_F(X, dim_factor, T, N)
+        F, L = _restrict_to_F(X, dim_factor)
          
     else:
-        F, L = _restrict_to_L(X, dim_factor, T, N)
+        F, L = _restrict_to_L(X, dim_factor)
         
     return F, L, N, T, dim_factor, restrict, X.device, X 
 
-def _restrict_to_F(X, dim_factor, T, N):
+def _restrict_to_F(X, dim_factor):
     """
     Return the eigenvectors of the largest eigenvalues restricted to F'F/T = I.
 
     Parameters:
-        XX (numpy.ndarray or torch.Tensor): XX^T, a T x T matrix.
+        X (torch.Tensor): X, a T x N matrix.
         dim_factor (int): Dimension of factors (k).
         use_torch (bool): Whether to use PyTorch for computations.
 
     Returns:
         numpy.ndarray or torch.Tensor: Matrix F.
     """
-
     XX = X @ X.T
+    T = XX.shape[0]  # Get the size of the square matrix
 
+    XX_cpu = move_to_cpu(XX)
     # Compute eigenvalues and eigenvectors using NumPy
-    eigvals, eigvecs = torch.lobpcg(XX, k=dim_factor, largest=True)
-
-    # Select the eigenvectors of the largest `dim_factor` eigenvalues
-    F = torch.sqrt(T) * eigvecs
-
+    eigvals, eigvecs = eigsh(XX_cpu, k=dim_factor, which='LM')
+    eigvecs_t = move_to_device(eigvecs, get_device())
+    eigvecs_ordered = eigvecs_t.flip(dims=[1])
+    
+    # Compute F and L
+    F = torch.sqrt(torch.tensor(T)) * eigvecs_ordered
+    
     L_T = F.T @ X / T
     L = L_T.T
         
     return F, L
 
-def _restrict_to_L(X, dim_factor, T, N):
+def _restrict_to_L(X, dim_factor):
     '''
     Return the eicenvectors of the largest eigenvalues restricted L'L/N = I. 
 
@@ -90,11 +91,15 @@ def _restrict_to_L(X, dim_factor, T, N):
         numpy.ndarray or torch.Tensor: Matrix F.
     '''
     XX = X.T @ X
+    N = XX.shape[0]  # Get the size of the square matrix
 
     # Compute eigenvalues and eigenvectors using NumPy
-    eigvals, eigvecs = torch.lobpcg(XX, k=dim_factor, largest=True)
+    XX_cpu = move_to_cpu(XX)
+    eigvals, eigvecs = eigsh(XX_cpu, k=dim_factor, which='LM')
+    eigvecs_t = move_to_device(eigvecs, get_device())
+    eigvecs_ordered = eigvecs_t.flip(dims=[1])
 
-    L = torch.sqrt(N) * eigvecs
+    L = torch.sqrt(N) * eigvecs_ordered
 
     F = X @ L / N
 
@@ -112,10 +117,10 @@ def _criteria_function_IC(k, V, sigma2_hat, penalty):
     return torch.log(V[k - 1]) + k * penalty
 
 def _SSE(k, X, F_hat, L_hat):
-    F_k = F_hat[:, :k]
-    L_k = L_hat[:, :k]
     FL = F_hat[:, :k] @ L_hat[:, :k].T
-    return torch.nanmean((X - FL) ** 2)
+    E = X - FL
+    mean = torch.einsum('ij, ij -> ', E, E) / (E.shape[0] * E.shape[1])
+    return mean
 
 def _sigma2_hat(X, F_hat, L_hat):
     e_kmax = X - F_hat @ L_hat.T
@@ -129,21 +134,24 @@ CRITERIA_DISPATCH = {
 def _choose_k(
             F_hat,
             L_hat,
-            X: Matrix,
-            sigma2_hat: float,
+            X,
+            sigma2_hat,
             k_max,
             Criteria):
     
     #T, N = X.shape
     # adjust to missing values:
     T, N = X.shape
-    N = move_to_device(N, get_device())
     T = move_to_device(T, get_device())
+    N = move_to_device(N, get_device())
 
     # Calculate V(k, F^k)
-    V = [_SSE(k, X, F_hat, L_hat) for k in range(1, k_max + 1)]
 
+    #V = [_SSE_old(k, X, F_hat, L_hat) for k in range(1, k_max + 1)]
+
+    V = [_SSE(k, X, F_hat, L_hat) for k in range(1, k_max + 1)]
     # Calculate the penalties for each criteria
+
     C_NT_square = min(T, N)
     A = (N + T) / (N * T) 
 
@@ -159,11 +167,14 @@ def _choose_k(
         fun, penalty_idx = c[:2], int(c[2]) - 1
         penalty = penalties[penalty_idx]
         criteria_function = CRITERIA_DISPATCH[fun]
-        criteria_matrix[i] = torch.tensor([criteria_function(k, V, sigma2_hat, penalty) for k in range(1, k_max + 1)])
+
+        for k in range(1, k_max + 1):
+            criteria_matrix[i, k-1] = criteria_function(k, V, sigma2_hat, penalty)
+
 
     # Determine the factor dimensionality
-    k_all = torch.argmax(-criteria_matrix, axis=1) + 1
-    k = torch.max(k_all)
+    k_all = torch.argmin(criteria_matrix, axis=1) + 1
+    k = k_all[0]
 
     return k, k_all, criteria_matrix
 
@@ -181,15 +192,14 @@ def _FDE(X: Matrix,
         See `factor_dimensionality` function for details.  
 
     Returns:
-        Criteria trix (numpy.matrix): A matrix containing the criteria values for each factor dimensionality.  
+        Criteria Matrix (numpy.matrix): A matrix containing the criteria values for each factor dimensionality.  
         F (numpy.ndarray): The estimated common factor of shape (T, k).  
         L (numpy.ndarray): The estimated loading factor of shape (N, k).
         k (int): The estimated factor dimensionality.
         k_all (numpy.ndarray): An array containing the optimal k for each criteria.
     '''
 
-    X = move_to_device(X, device='cuda' if torch.cuda.is_available() else 'cpu')
-
+    #X = move_to_device(X, device=get_device())
 
     # Calculate the factor using the PCA method with k_max
     F_hat, L_hat, _, _, _, _, device, X = _PCA(X, k_max, restrict=restrict)

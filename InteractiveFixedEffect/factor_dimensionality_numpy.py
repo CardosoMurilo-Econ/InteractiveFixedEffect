@@ -49,7 +49,7 @@ def _restrict_to_F(X, dim_factor):
     Return the eigenvectors of the largest eigenvalues restricted to F'F/T = I.
 
     Parameters:
-        XX (numpy.ndarray or torch.Tensor): XX^T, a T x T matrix.
+        X (numpy.ndarray or torch.Tensor): X, a T x N matrix.
         dim_factor (int): Dimension of factors (k).
         use_torch (bool): Whether to use PyTorch for computations.
 
@@ -62,7 +62,7 @@ def _restrict_to_F(X, dim_factor):
 
     # Compute eigenvalues and eigenvectors using NumPy
     eigvals, eigvecs = eigsh(XX, k=dim_factor, which='LM')
-
+    
     # Select the eigenvectors of the largest `dim_factor` eigenvalues
     F = np.sqrt(T) * eigvecs[:, ::-1]
 

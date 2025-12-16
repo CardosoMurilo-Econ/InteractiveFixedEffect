@@ -344,6 +344,7 @@ def IFE(Y: Matrix,
         convergence_criteria: criteria_conv_class = ['Relative_norm', 'Obj_fun', 'Grad_norm'],
         tolerance: np.ndarray = np.array([1e-12, 1e-12, 1e-6]),
         convergence_method: str = 'Random_SOR',
+        convergence_patience: int = 3,
         verbose: bool = False,
         torch_cuda: bool = False,
         **options_convergence_method) -> InteractiveFixedEffectModelOutput:
@@ -472,16 +473,19 @@ def IFE(Y: Matrix,
     Y = _validate_input(Y, Matrix)
     X = [_validate_input(x, Matrix) for x in X]
     T,N = Y.shape
-    k = _validate_input(k, k_class, N=N, T=T)
-    k_max = _validate_input(k_max, k_max_class, N=N, T=T)
-    fixed_effects = _validate_input(fixed_effects, fixed_effect)
-    variance_type = _validate_input(variance_type, var_type)
+    
     criteria = _validate_input(criteria, criteria_class)
     convergence_criteria = _validate_input(convergence_criteria, criteria_conv_class)
-    max_iter = _validate_input(max_iter, int)
     tolerance = _validate_input(tolerance, tolerance_class, convergence_criteria=convergence_criteria)
-    verbose = _validate_input(verbose, boll_class, name = 'echo')
-    torch_cuda = _validate_input(torch_cuda, boll_class, name = 'torch_cuda')
+    assert isinstance(fixed_effects, str) and fixed_effects in ['none', 'demeaned', 'twoways'], "fixed_effects must be either 'none', 'demeaned' or 'twoways'."
+    assert isinstance(variance_type, str) and variance_type in ['iid', 'heteroskedastic'], "variance_type must be either 'iid' or 'heteroskedastic'."
+    assert (k is None or isinstance(k, int)) and 0 <= k <= min(T, N), "k must be a positive integer less than or equal to min(T, N) or None." 
+    assert isinstance(k_max, int) and 0 <= k_max <= min(T, N), "k_max must be a positive integer less than or equal to min(T, N)."
+    assert isinstance(max_iter, int) and max_iter > 0, "max_iter must be a positive integer."
+    assert isinstance(verbose, bool), "verbose must be a boolean value."
+    assert isinstance(torch_cuda, bool), "torch_cuda must be a boolean value."
+    assert isinstance(convergence_patience, int) and convergence_patience > 0, "convergence_patience must be a positive integer."
+
     #save_path = _validate_input(save_path, boll_class, name = 'save_path')
     
     if not torch_cuda:
@@ -504,7 +508,7 @@ def IFE(Y: Matrix,
     # Estimate the coefficients, factors and loadings
     beta, F_hat, L_hat, k, N_sim, converges, crit_eval, _ = _est_alg(
         Y_adj, X_adj, k, criteria, k_max, 'common', #restrict = common loading (F'F/T = I) 
-        max_iter, convergence_criteria, tolerance, convergence_method,
+        max_iter, convergence_criteria, tolerance, convergence_method, convergence_patience,
         verbose, save_path = False,
         **options_convergence_method
     )

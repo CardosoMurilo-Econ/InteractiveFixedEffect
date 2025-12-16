@@ -106,7 +106,7 @@ class AndersonAcceleration:
     >>> x_acc = acc.apply(x)  # accelerate from x 
     """
 
-    def __init__(self, window_size=5, reg=0, mixing_param=1.0):
+    def __init__(self, window_size=5, reg=0, mixing_param=1.0, kth_max = 5):
         
         window_size = int(window_size)
         assert window_size > 0, "Window size must be positive"
@@ -134,7 +134,7 @@ class AndersonAcceleration:
         self.prev_res_norm = np.inf    
 
         # Decrease_obj_test up
-        self.decrease_obj = decrease_obj_test(kth_max=3, max_history=10, tolerance=1e-5)
+        self.decrease_obj = decrease_obj_test(kth_max=kth_max, max_history=10, tolerance=1e-5)
 
         # previous ki
         self.previous_ki = None
@@ -272,7 +272,7 @@ class decrease_obj_test():
 # ------  Method  -------- #
 # ------------------------ #
 
-def set_convergence_alg(p, convergence_method: str = 'SOR', **options_convergence_method):
+def set_convergence_alg(p, convergence_patience, convergence_method: str = 'SOR', **options_convergence_method):
 
     convergence_method = convergence_method.strip().lower()
 
@@ -308,7 +308,8 @@ def set_convergence_alg(p, convergence_method: str = 'SOR', **options_convergenc
         windows_size = options_convergence_method.get('window_size', 5)
         reg = options_convergence_method.get('regularization_parameter', 0)
         mixing_param = options_convergence_method.get('mixing_parameter', 1.0)
-        up_method = AndersonAcceleration(window_size=windows_size, reg=reg, mixing_param=mixing_param)
+        kth_max = options_convergence_method.get('kth_max', max(convergence_patience + 1, 3))
+        up_method = AndersonAcceleration(window_size=windows_size, reg=reg, mixing_param=mixing_param, kth_max=kth_max)
 
         number_of_draws = 0
         dist_random_draw = 'normal'

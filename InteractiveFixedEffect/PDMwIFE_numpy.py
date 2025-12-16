@@ -7,7 +7,7 @@ from .Update_method import set_convergence_alg
 # ---- Aux Functions ----- #
 # ------------------------ #
 
-def print_progress(beta, k, i, crit_eval, f_eval, previoues_f_eval, SOR_hyperparam):
+def print_progress(beta, k, i, crit_eval, f_eval, previoues_f_eval):
         import sys
         if i == 0:
                 sys.stdout.write("\n")
@@ -25,14 +25,13 @@ def print_progress(beta, k, i, crit_eval, f_eval, previoues_f_eval, SOR_hyperpar
             beta_print = [f"Beta[{j}] = {b:.6f}" for j, b in enumerate(beta.flatten()[:4])]
             beta_print.append("...")  # Indicate that there are more coefficients not shown
             beta_print.append(f" | Avg Beta: {np.mean(beta):.6f}")
-        sys.stdout.write(', '.join(beta_print) + f", Number of Factors = {k}, SOR_parameter = {SOR_hyperparam:.2f} \n")
+        sys.stdout.write(', '.join(beta_print) + f", Number of Factors = {k} \n")
 
         # Print criteria evaluations 
         num_criteria = len(crit_eval)
         names = ['Relative Norm: ', 'Objective Function Diff: ', 'Gradient Norm: '][:num_criteria]
         delta = (f_eval - previoues_f_eval)
         sys.stdout.write(f"Obj Function Value = {f_eval:.5f}, Delta Obj Function = {delta:.12} \n")  
-
 
         result_string = ", ".join([f"{name}{eval:.12f}" for name, eval in zip(names, crit_eval)])
         sys.stdout.write(result_string + "\n")
@@ -100,16 +99,15 @@ def _get_fixed_effects(fixed_effects,
 # ------------------------ #
 
 def _Obj_fun_diff(f_eval, f_eval_last):
-    relative_objective_diff = abs(f_eval - f_eval_last)/abs(f_eval_last)
+    relative_objective_diff = abs(f_eval - f_eval_last)/(abs(f_eval_last)+1e-15)
     return relative_objective_diff.flatten()[0]
 
 def _relative_norm(beta_new, beta):
-    relative_norm = np.linalg.norm(beta_new - beta) / np.linalg.norm(beta)
+    relative_norm = np.linalg.norm(beta_new - beta) / (np.linalg.norm(beta)+1e-15)
     return relative_norm.flatten()[0]
 
 def _grad_norm(Y, F, L, x, beta):
 
-    T,N = Y.shape
     Y_new = Y - F @ L.T
     y_new = Y_new.reshape(-1, 1)
 
@@ -252,11 +250,12 @@ def _est_alg(Y: Matrix,
             k: int = None,
             criteria: criteria_class = ['IC1'],
             k_max: k_max_class = 8,
-            restrict: str = 'optimize',
+            restrict: str = 'common',
             max_iter: int = 10_000,
             convergence_criteria: list[str] = ['Relative_norm', 'Obj_fun', 'Grad_norm'],
             tolerance: np.ndarray = np.array([1e-8, 1e-10, 1e-5]),
             convergence_method: str = 'SOR',
+            convergence_patience: int = 5,
             echo = False,
             save_path: bool = False,
             **options_convergence_method
@@ -291,7 +290,7 @@ def _est_alg(Y: Matrix,
     T, N = Y.shape
     p = len(X)
 
-    up_method, number_of_draws, dist_random_draw = set_convergence_alg(p, convergence_method, **options_convergence_method)
+    up_method, number_of_draws, dist_random_draw = set_convergence_alg(p, convergence_patience, convergence_method, **options_convergence_method)
     # x = np.empty((T*N, K + 1)) # Use np.zeros if you prefer, but empty is faster
     # x[:, 0] = 1
     
@@ -320,6 +319,7 @@ def _est_alg(Y: Matrix,
         path = []
         f_eval_history = []
 
+    n_converges = 0
     for i in range(max_iter):
         
         beta_est, F_hat, L_hat, f_eval, ki = _random_centred_beta(beta,
@@ -333,10 +333,11 @@ def _est_alg(Y: Matrix,
                          convergence_criteria)
         
         if echo:
-            print_progress(beta_est, ki, i, crit_eval, f_eval/(N*T), previous_f_eval/(N*T), 0)
+            print_progress(beta_est, ki, i, crit_eval, f_eval/(N*T), previous_f_eval/(N*T))
 
         converges = all(np.array(crit_eval) <= tolerance)
-        if converges:
+        n_converges += 1 if converges else min(0, -n_converges)
+        if n_converges >=  convergence_patience:
             beta = beta_est
             break
 
