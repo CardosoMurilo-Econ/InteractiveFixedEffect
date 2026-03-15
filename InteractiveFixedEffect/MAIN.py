@@ -352,7 +352,7 @@ def IFE(Y: Matrix,
     '''
     Estimates the **Interactive Fixed Effects** model for a large panel dataset by the following equation:
 
-    Y_{it} = X_{it} \\beta + F_{it} L^{T} + \epsilon_{it}
+    Y_{it} = X_{it} \\beta + F_{it} L^{T} + \\epsilon_{it}
     
     The algorithm is based on the paper **"PANEL DATA MODELS WITH INTERACTIVE FIXED EFFECTS"** by Bai (2009): https://doi.org/10.3982/ECTA6135.
     
@@ -479,7 +479,7 @@ def IFE(Y: Matrix,
     tolerance = _validate_input(tolerance, tolerance_class, convergence_criteria=convergence_criteria)
     assert isinstance(fixed_effects, str) and fixed_effects in ['none', 'demeaned', 'twoways'], "fixed_effects must be either 'none', 'demeaned' or 'twoways'."
     assert isinstance(variance_type, str) and variance_type in ['iid', 'heteroskedastic'], "variance_type must be either 'iid' or 'heteroskedastic'."
-    assert (k is None or isinstance(k, int)) and 0 <= k <= min(T, N), "k must be a positive integer less than or equal to min(T, N) or None." 
+    assert k is None or (isinstance(k, int) and 0 <= k <= min(T, N)), "k must be None or a non-negative integer <= min(T, N)."
     assert isinstance(k_max, int) and 0 <= k_max <= min(T, N), "k_max must be a positive integer less than or equal to min(T, N)."
     assert isinstance(max_iter, int) and max_iter > 0, "max_iter must be a positive integer."
     assert isinstance(verbose, bool), "verbose must be a boolean value."

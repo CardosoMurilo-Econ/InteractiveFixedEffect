@@ -179,7 +179,7 @@ def _uniform_draws(beta, scale=1, number_of_draws=3):
     p = beta.shape[0]
 
     # Normalize scale to be broadcastable with beta
-    if np.isscalar(scale) or (isinstance(scale, np.ndarray) and scale.size == 1):
+    if np.isscalar(scale):
         s = float(scale)
         h = 5 * s * np.abs(beta) / 2.0
     else:
@@ -266,12 +266,12 @@ def _est_alg(Y: Matrix,
         This function is intended for use inside other functions.  
         For direct usage, please refer to the `IFE` function.
 
-        The algorithm use SOR (Successive Over-Relaxation) method to update the coefficients estimates at each iteration. The SOR hyperparameter ($\omega$) can be adjusted through the `SOR_hyperparam` argument:
+        The algorithm use SOR (Successive Over-Relaxation) method to update the coefficients estimates at each iteration. The SOR hyperparameter ($\\omega$) can be adjusted through the `SOR_hyperparam` argument:
                 - SOR_hyperparam = 1.0: No over-relaxation, equivalent to standard Gauss-Seidel update.
                 - SOR_hyperparam > 1.0: Over-relaxation, which may accelerate convergence.
                 - 0 < SOR_hyperparam < 1.0: Under-relaxation, which may improve stability in some cases.
 
-                $\beta_{new} = \beta_{old} + \omega (\beta_{est} - \beta_{old})$
+                $\\beta_{new} = \\beta_{old} + \\omega (\\beta_{est} - \\beta_{old})$
 
         Inputs: 
                 See `IFE` function.
@@ -311,7 +311,6 @@ def _est_alg(Y: Matrix,
                                                         Y, x, xx_inv_xT, 
                                                         k, k_max, criteria, restrict,
                                                         scale=1, number_of_draws = number_of_draws, dist=dist_random_draw)
-    beta = beta_initial
     change_method = False
     delta_beta = np.abs(beta_initial - beta).flatten()
 

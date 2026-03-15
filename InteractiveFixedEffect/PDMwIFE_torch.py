@@ -316,7 +316,7 @@ def _est_alg(Y: Matrix,
                 - SOR_hyperparam > 1.0: Over-relaxation, which may accelerate convergence.
                 - 0 < SOR_hyperparam < 1.0: Under-relaxation, which may improve stability in some cases.
 
-                $\beta_{new} = \beta_{old} + \omega (\beta_{est} - \beta_{old})$
+                $\\beta_{new} = \\beta_{old} + \\omega (\\beta_{est} - \\beta_{old})$
 
         Inputs: 
                 See `IFE` function.
