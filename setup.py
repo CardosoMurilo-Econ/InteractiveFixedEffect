@@ -10,7 +10,7 @@ setup(
     author_email='murilo.s.cardoso@outlook.com',
 
     install_requires=[
-        'numpy<2.3.0', 
+        'numpy>=2.3.0', 
         'pandas>=1.1.0',
         'scipy>=1.0.0',
         'torch'
