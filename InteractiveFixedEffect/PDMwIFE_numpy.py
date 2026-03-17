@@ -171,66 +171,20 @@ def _get_estimates(beta,
 
 # Randomic Beta search #
 
-def _uniform_draws(beta, scale=1, number_of_draws=3):
-    
-    # Ensure beta is column vector
-    beta = beta.reshape(-1, 1)
-
-    p = beta.shape[0]
-
-    # Normalize scale to be broadcastable with beta
-    if np.isscalar(scale):
-        s = float(scale)
-        h = 5 * s * np.abs(beta) / 2.0
-    else:
-        s = np.asarray(scale).reshape(-1, 1)
-        if s.shape[0] != beta.shape[0]:
-            raise ValueError("scale must be a scalar or have length equal to p")
-        h = 5 * s * np.abs(beta) / 2.0
-
-    low_beta = beta - h
-    high_beta = beta + h
-
-    betas_gen = np.random.uniform(low=low_beta.flatten(), 
-                    high=high_beta.flatten(), 
-                    size=(number_of_draws, p))
-
-    return betas_gen
-
-def _normal_draws(beta, scale=1, number_of_draws=3):
-    # Ensure beta is column vector
-    
-    p = beta.shape[0]
-    beta = beta.flatten()
-
-    if not np.isscalar(scale) or not (isinstance(scale, int)):
-        scale = scale.flatten()
-
-    betas_gen = np.random.normal(loc=beta, scale = scale, size = (number_of_draws, p))
-
-    return betas_gen
-
-def _random_centred_beta(beta,
+def _random_centred_beta(betas_gen,
                         Y, x, xx_inv_xT, 
-                        k, k_max, criteria, restrict,
-                        scale=1, number_of_draws=3, dist = 'uniform'):
+                        k, k_max, criteria, restrict):
     
     T, N = Y.shape
 
-    if dist == 'normal':
-        betas_gen = _normal_draws(beta, scale=scale, number_of_draws=number_of_draws)
-    
-    elif dist == 'uniform':
-        betas_gen = _uniform_draws(beta, scale=scale, number_of_draws=number_of_draws)
-
-    betas_gen = np.vstack([beta.flatten(), betas_gen])
     min_eval = np.inf
-
     for beta in betas_gen:
 
         beta_est, F_hat, L_hat, f_eval, ki = _get_estimates(beta, 
                                                             Y, x, xx_inv_xT,
-                                                            k=k, k_max=k_max, criteria=criteria, restrict=restrict)
+                                                            k=k, k_max=k_max, 
+                                                            criteria=criteria, 
+                                                            restrict=restrict)
     
         C_NT_square = min(T, N)
         Penalty_term = np.log(C_NT_square) / C_NT_square
@@ -255,7 +209,7 @@ def _est_alg(Y: Matrix,
             convergence_criteria: list[str] = ['Relative_norm', 'Obj_fun', 'Grad_norm'],
             tolerance: np.ndarray = np.array([1e-8, 1e-10, 1e-5]),
             convergence_method: str = 'SOR',
-            convergence_patience: int = 5,
+            convergence_patience: int = 3,
             echo = False,
             save_path: bool = False,
             **options_convergence_method
@@ -290,7 +244,12 @@ def _est_alg(Y: Matrix,
     T, N = Y.shape
     p = len(X)
 
-    up_method, number_of_draws, dist_random_draw = set_convergence_alg(p, convergence_patience, convergence_method, **options_convergence_method)
+    up_method, random_beta_update = set_convergence_alg(p, 
+                                                        convergence_method=convergence_method, 
+                                                        convergence_patience = convergence_patience,
+                                                        **options_convergence_method
+                                                        )
+    
     # x = np.empty((T*N, K + 1)) # Use np.zeros if you prefer, but empty is faster
     # x[:, 0] = 1
     
@@ -307,12 +266,9 @@ def _est_alg(Y: Matrix,
     y = Y.reshape(-1, 1)
 
     beta_initial, previous_f_eval = _beta_estimate(y, x, xx_inv_xT)
-    beta, F_hat, L_hat, f_eval, ki = _random_centred_beta(beta_initial,
-                                                        Y, x, xx_inv_xT, 
-                                                        k, k_max, criteria, restrict,
-                                                        scale=1, number_of_draws = number_of_draws, dist=dist_random_draw)
+    beta = beta_initial
     change_method = False
-    delta_beta = np.abs(beta_initial - beta).flatten()
+    delta_beta = 1
 
     if save_path:
         path = []
@@ -321,10 +277,11 @@ def _est_alg(Y: Matrix,
     n_converges = 0
     for i in range(max_iter):
         
-        beta_est, F_hat, L_hat, f_eval, ki = _random_centred_beta(beta,
+        betas_random = random_beta_update.apply(beta, scale=delta_beta)
+        beta_est, F_hat, L_hat, f_eval, ki = _random_centred_beta(betas_random,
                                                                 Y, x, xx_inv_xT, 
-                                                                k, k_max, criteria, restrict,
-                                                                scale = delta_beta, number_of_draws=number_of_draws, dist = dist_random_draw)
+                                                                k, k_max, criteria, restrict)
+        
 
         crit_eval = _criteria_calculation(beta_est, beta, 
                          f_eval, previous_f_eval,
@@ -348,7 +305,7 @@ def _est_alg(Y: Matrix,
                 print("Anderson Acceleration failed to converge. Changing to SOR method.")
                 convergence_method = 'SOR'
                 SOR_hyperparam = 5.0
-                up_method, number_of_draws, dist_random_draw = set_convergence_alg(p, convergence_method, SOR_hyperparam=SOR_hyperparam)
+                up_method, random_beta_update = set_convergence_alg(p, convergence_method, SOR_hyperparam=SOR_hyperparam)
                 change_method = True
                 theta = np.concatenate((beta_initial.flatten(), (L_hat.mean(axis=0) * F_hat.mean(axis=0)).flatten()))
         

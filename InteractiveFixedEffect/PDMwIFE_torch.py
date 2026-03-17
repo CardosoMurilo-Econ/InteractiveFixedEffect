@@ -158,7 +158,7 @@ def _beta_estimate(y_new, x, xx_inv_xt):
 def _factor_estimation(W, k, k_max, criteria, restrict):
 
     if k is not None:
-        F_hat, L_hat, _, _, _, _, _ = _PCA(W, k, restrict)
+        F_hat, L_hat, _, _, _, _, _, _ = _PCA(W, k, restrict)
         ki = k
     else:
         _, F_hat, L_hat, ki, _ = _FDE(W, k_max = k_max, Criteria=criteria, restrict = restrict)
@@ -182,97 +182,19 @@ def _get_estimates(beta,
     return beta_est, F_hat, L_hat, f_eval, ki
 
 # Randomic Beta search #
-
-def _uniform_draws(beta, scale=1, number_of_draws=3):
-    
-    # Ensure beta is column vector
-    if not isinstance(beta, torch.Tensor):
-        beta = torch.tensor(beta, dtype=torch.float64, device=get_device())
-    else:
-        beta = beta.float()
-    
-    beta = beta.reshape(-1, 1)
-    p = beta.shape[0]
-    device = beta.device
-
-    is_scalar = isinstance(scale, (int, float)) or (isinstance(scale, torch.Tensor) and scale.numel() == 1)
-
-    # Normalize scale to be broadcastable with beta
-    if is_scalar:
-        s = float(scale)
-        h = 5 * s * torch.abs(beta) / 2.0
-    else:
-        # Convert list/array to tensor if needed, move to same device as beta
-        if not isinstance(scale, torch.Tensor):
-            s = torch.tensor(scale, dtype=beta.dtype, device=device)
-        else:
-            s = scale.to(device=device, dtype=beta.dtype)
-        
-        s = s.reshape(-1, 1)
-        h = 5 * s * torch.abs(beta) / 2.0
-    
-   
-    low_beta = beta - h
-    high_beta = beta + h
-    low_flat = low_beta.flatten()
-    high_flat = high_beta.flatten()
-
-    rand_0_to_1 = torch.rand((number_of_draws, p), device=device, dtype=beta.dtype)
-    betas_gen = low_flat + (high_flat - low_flat) * rand_0_to_1
-
-    return betas_gen
-
-def _normal_draws(beta, scale=1, number_of_draws=3):
-    # Ensure beta is column vector
-    
-    if not isinstance(beta, torch.Tensor):
-        beta = torch.tensor(beta, device=get_device(), dtype=torch.float64)
-
-    device = beta.device
-    beta = beta.flatten()
-    p = beta.shape[0]
-
-    is_scalar = isinstance(scale, (int, float)) or (isinstance(scale, torch.Tensor) and scale.numel() == 1)
-
-    if is_scalar:
-        # Keep as simple float or tensor for broadcasting
-        s = float(scale) if not isinstance(scale, torch.Tensor) else scale.item()
-    else:
-        # Convert to tensor if list/array
-        if not isinstance(scale, torch.Tensor):
-            s = torch.tensor(scale, device=device, dtype=beta.dtype)
-        else:
-            s = scale.to(device=device, dtype=beta.dtype)
-    
-        s = s.flatten()
-
-    epsilon = torch.randn((number_of_draws, p), device=device, dtype=beta.dtype)
-    betas_gen = beta + s * epsilon
-
-    return betas_gen
-
-def _random_centred_beta(beta,
+def _random_centred_beta(betas_gen,
                         Y, x, xx_inv_xT, 
-                        k, k_max, criteria, restrict,
-                        scale=1, number_of_draws=3, dist = 'uniform'):
+                        k, k_max, criteria, restrict):
     
     T, N = Y.shape
 
-    if dist == 'normal':
-        betas_gen = _normal_draws(beta, scale=scale, number_of_draws=number_of_draws)
-    
-    elif dist == 'uniform':
-        betas_gen = _uniform_draws(beta, scale=scale, number_of_draws=number_of_draws)
-
-    betas_gen = torch.vstack([beta.flatten(), betas_gen])
     min_eval = np.inf
-    beta_best = beta
+    beta_best = betas_gen[0]
     F_hat_best = torch.ones((T, k_max), device=get_device())
     L_hat_best = torch.ones((T, k_max), device=get_device())
     ki_best = torch.ones((1,), device=get_device())
 
     for beta in betas_gen:
-
         beta_est, F_hat, L_hat, f_eval, ki = _get_estimates(beta, 
                                                             Y, x, xx_inv_xT,
                                                             k=k, k_max=k_max, criteria=criteria, restrict=restrict)
@@ -311,7 +233,7 @@ def _est_alg(Y: Matrix,
         This function is intended for use inside other functions.  
         For direct usage, please refer to the `IFE` function.
 
-        The algorithm use SOR (Successive Over-Relaxation) method to update the coefficients estimates at each iteration. The SOR hyperparameter ($\omega$) can be adjusted through the `SOR_hyperparam` argument:
+        The algorithm use SOR (Successive Over-Relaxation) method to update the coefficients estimates at each iteration. The SOR hyperparameter ($\\omega$) can be adjusted through the `SOR_hyperparam` argument:
                 - SOR_hyperparam = 1.0: No over-relaxation, equivalent to standard Gauss-Seidel update.
                 - SOR_hyperparam > 1.0: Over-relaxation, which may accelerate convergence.
                 - 0 < SOR_hyperparam < 1.0: Under-relaxation, which may improve stability in some cases.
@@ -338,7 +260,11 @@ def _est_alg(Y: Matrix,
     T, N = Y.shape
     p = len(X)
 
-    up_method, number_of_draws, dist_random_draw = set_convergence_alg(p, convergence_patience, convergence_method, **options_convergence_method)
+    up_method, random_beta_update = set_convergence_alg(p, 
+                                                        convergence_method=convergence_method, 
+                                                        convergence_patience = convergence_patience,
+                                                        **options_convergence_method
+                                                        )
     # x = np.empty((T*N, K + 1)) # Use np.zeros if you prefer, but empty is faster
     # x[:, 0] = 1
     
@@ -355,14 +281,9 @@ def _est_alg(Y: Matrix,
     y = Y.reshape(-1, 1)
 
     beta_initial, previous_f_eval = _beta_estimate(y, x, xx_inv_xT)
-    beta, F_hat, L_hat, f_eval, ki = _random_centred_beta(beta_initial,
-                                                        Y, x, xx_inv_xT, 
-                                                        k, k_max, criteria, restrict,
-                                                        scale=1, number_of_draws = number_of_draws, dist=dist_random_draw)
     beta = beta_initial
     change_method = False
-    delta_beta = torch.abs(beta_initial - beta).flatten()
-    scale = 1
+    delta_beta = 1
 
     if save_path:
         path = []
@@ -370,10 +291,12 @@ def _est_alg(Y: Matrix,
     n_converges = 0
     for i in range(max_iter):
         
-        beta_est, F_hat, L_hat, f_eval, ki = _random_centred_beta(beta,
+        betas_random = random_beta_update.apply(move_to_cpu(beta), scale=delta_beta)
+        betas_random = move_to_device(betas_random, device)
+        beta_est, F_hat, L_hat, f_eval, ki = _random_centred_beta(betas_random,
                                                                 Y, x, xx_inv_xT, 
-                                                                k, k_max, criteria, restrict,
-                                                                scale = scale, number_of_draws=number_of_draws, dist = dist_random_draw)
+                                                                k, k_max, criteria, restrict
+                                                                )
 
         crit_eval = _criteria_calculation(beta_est, beta, 
                          f_eval, previous_f_eval,
@@ -397,7 +320,10 @@ def _est_alg(Y: Matrix,
                 print("Anderson Acceleration failed to converge. Changing to SOR method.")
                 convergence_method = 'SOR'
                 SOR_hyperparam = 5.0
-                up_method, number_of_draws, dist_random_draw = set_convergence_alg(p, convergence_method, SOR_hyperparam=SOR_hyperparam)
+                up_method, random_beta_update = set_convergence_alg(p, 
+                                                                    convergence_method=convergence_method, 
+                                                                    convergence_patience = convergence_patience,
+                                                                    SOR_hyperparam=SOR_hyperparam)
                 change_method = True
                 theta = np.concatenate((beta_initial.flatten(), (L_hat.mean(axis=0) * F_hat.mean(axis=0)).flatten()))
         

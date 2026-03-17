@@ -267,12 +267,80 @@ class decrease_obj_test():
 
 # ------------------------ #
 
+class random_update_method:
+    
+    def __init__(self, dist, number_of_draws, min_scale=1e-3):
+        self.dist = dist
+        self.min_scale = min_scale
+        self.number_of_draws = number_of_draws
+
+    def _uniform_draws(self, beta, scale=1, number_of_draws=3):
+        
+        # Ensure beta is column vector
+        beta = beta.reshape(-1, 1)
+
+        p = beta.shape[0]
+
+        # Normalize scale to be broadcastable with beta
+        if np.isscalar(scale):
+            s = float(scale)
+            h = 5 * s * np.abs(beta) / 2.0
+        else:
+            s = np.asarray(scale).reshape(-1, 1)
+            if s.shape[0] != beta.shape[0]:
+                raise ValueError("scale must be a scalar or have length equal to p")
+            h = 5 * s * np.abs(beta) / 2.0
+
+        low_beta = beta - h
+        high_beta = beta + h
+
+        betas_gen = np.random.uniform(low=low_beta.flatten(), 
+                        high=high_beta.flatten(), 
+                        size=(number_of_draws, p))
+
+        return betas_gen
+
+    def _normal_draws(self, beta, scale=1, number_of_draws=3):
+        # Ensure beta is column vector
+        
+        p = beta.shape[0]
+        beta = beta.flatten()
+
+        if not isinstance(scale, (int, float)):
+            scale = scale.flatten()
+
+        betas_gen = np.random.normal(loc=beta, scale = scale, size = (number_of_draws, p))
+
+        return betas_gen
+
+    def apply(self, beta, scale=1):
+
+        # no random draws, return original beta
+        if self.number_of_draws == 0:
+            return beta.reshape(1, -1)
+        
+        # If scale is too small, perform random draw (draw betas with high scale) with 25% chance to encourage exploration
+        if np.all(np.asarray(scale) <= self.min_scale):
+            if np.random.rand() < 0.80: # 80% chance to return original beta, 20% chance to perform random draw with high scale
+                return beta.reshape(1, -1)
+            else:
+                scale = 1*np.abs(beta) # 1 times the absolute value of beta, to encourage exploration when scale is too small
+
+        if self.dist == 'normal':
+            betas_gen = self._normal_draws(beta, scale=scale, number_of_draws=self.number_of_draws)
+    
+        elif self.dist == 'uniform':
+            betas_gen = self._uniform_draws(beta, scale=scale, number_of_draws=self.number_of_draws)
+
+        betas_gen = np.vstack([beta.flatten(), betas_gen])
+        return betas_gen
+
 # ------------------------ #        
 # ---- Set Convergence --- #
 # ------  Method  -------- #
 # ------------------------ #
 
-def set_convergence_alg(p, convergence_patience, convergence_method: str = 'SOR', **options_convergence_method):
+def set_convergence_alg(p, convergence_method: str = 'SOR', convergence_patience: int = 3, **options_convergence_method):
 
     convergence_method = convergence_method.strip().lower()
 
@@ -287,9 +355,9 @@ def set_convergence_alg(p, convergence_patience, convergence_method: str = 'SOR'
         dist_random_draw = 'normal'
 
     elif convergence_method in ['sor', 'random_sor']: 
-        w = options_convergence_method.get('SOR_hyperparam', 2)
+        w = options_convergence_method.get('SOR_hyperparam', 5)
         w_max = options_convergence_method.get('max_SOR_hyperparam', w)
-        inc_factor = options_convergence_method.get('inc_factor', 1.1)
+        inc_factor = options_convergence_method.get('inc_factor', 1.5)
         dec_factor = options_convergence_method.get('dec_factor', 0.5)
         
         up_method = SOR_update_method(p = p,
@@ -316,6 +384,8 @@ def set_convergence_alg(p, convergence_patience, convergence_method: str = 'SOR'
 
     else:
         raise ValueError("convergence_method must be either 'None', 'SOR', 'Random_SOR' or 'AndersonAcceleration'")
+    
+    random_beta_update = random_update_method(dist=dist_random_draw, number_of_draws=number_of_draws, min_scale = 0.001)
 
-    return up_method, number_of_draws, dist_random_draw      
+    return up_method, random_beta_update
 
